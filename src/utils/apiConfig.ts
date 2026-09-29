@@ -1,7 +1,7 @@
 /**
  * Resolves API endpoints whether running locally, on AI Studio, or deployed to GitHub Pages.
  */
-const CLOUD_BACKEND_URL = 'https://ais-dev-3oj5b2emnu7spc4iyhrwny-293151906901.europe-west2.run.app';
+const CLOUD_BACKEND_URL = 'https://ais-dev-sbc65llrmjhuxiyzbd4yve-293151906901.europe-west2.run.app';
 
 export async function callBackendApi(endpoint: string, options: RequestInit): Promise<Response> {
   const isGitHubPages = typeof window !== 'undefined' && window.location.hostname.includes('github.io');
