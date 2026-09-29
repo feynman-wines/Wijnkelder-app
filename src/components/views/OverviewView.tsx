@@ -14,7 +14,8 @@ interface OverviewViewProps {
   onToggleFavorite: (wine: Wine) => void;
   onUpdateWine?: (wine: Wine) => void;
   onNavigateToCalendar: () => void;
-  onNavigateToAdvice: () => void;
+  onNavigateToStock: (statusFilter?: string) => void;
+  onNavigateToAdvice?: () => void;
   onNavigateToStats?: () => void;
   onOpenTonightSommelier: () => void;
 }
@@ -36,6 +37,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   onToggleFavorite,
   onUpdateWine,
   onNavigateToCalendar,
+  onNavigateToStock,
   onNavigateToAdvice,
   onNavigateToStats,
   onOpenTonightSommelier
@@ -104,9 +106,15 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
       {/* KPI Action Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <div className="p-4 rounded-2xl bg-stone-900 border border-stone-800 shadow-sm flex flex-col justify-between">
-          <div className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-1">
-            Totale Voorraad
+        <div 
+          onClick={() => onNavigateToStock('')}
+          className="p-4 rounded-2xl bg-stone-900 border border-stone-800 shadow-sm flex flex-col justify-between cursor-pointer hover:border-stone-700 transition group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-1">
+              Totale Voorraad
+            </div>
+            <ArrowRight className="w-3.5 h-3.5 text-stone-600 group-hover:text-stone-300 transition" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-stone-100 font-mono">
             {totalBottles} <span className="text-base font-normal text-stone-400">flessen</span>
@@ -115,8 +123,8 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         </div>
 
         <div
-          onClick={onNavigateToAdvice}
-          className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-800/60 shadow-sm cursor-pointer hover:border-emerald-600 transition flex flex-col justify-between"
+          onClick={() => onNavigateToStock('peak')}
+          className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-800/60 shadow-sm cursor-pointer hover:border-emerald-600 transition flex flex-col justify-between group"
         >
           <div className="flex items-center justify-between">
             <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1">
@@ -128,14 +136,14 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             {peakWines.length} <span className="text-base font-normal text-emerald-400/80">flessen</span>
           </div>
           <p className="text-xs text-emerald-200/80 mt-1 flex items-center gap-1">
-            <span>Direct drinkklaar & op smaak</span>
-            <ArrowRight className="w-3 h-3" />
+            <span>Direct drinkklaar in voorraad</span>
+            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition" />
           </p>
         </div>
 
         <div
           onClick={onNavigateToCalendar}
-          className="p-4 rounded-2xl bg-amber-950/40 border border-amber-800/60 shadow-sm cursor-pointer hover:border-amber-600 transition flex flex-col justify-between"
+          className="p-4 rounded-2xl bg-amber-950/40 border border-amber-800/60 shadow-sm cursor-pointer hover:border-amber-600 transition flex flex-col justify-between group"
         >
           <div className="flex items-center justify-between">
             <div className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-1">
@@ -148,7 +156,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           </div>
           <p className="text-xs text-amber-200/80 mt-1 flex items-center gap-1">
             <span>Naderen einde drinkperiode</span>
-            <ArrowRight className="w-3 h-3" />
+            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition" />
           </p>
         </div>
       </div>

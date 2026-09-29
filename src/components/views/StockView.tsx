@@ -11,6 +11,7 @@ interface StockViewProps {
   onDrinkOne: (wine: Wine) => void;
   onToggleFavorite: (wine: Wine) => void;
   onAddClick: () => void;
+  initialStatusFilter?: string;
 }
 
 export const StockView: React.FC<StockViewProps> = ({
@@ -18,14 +19,21 @@ export const StockView: React.FC<StockViewProps> = ({
   onSelectWine,
   onDrinkOne,
   onToggleFavorite,
-  onAddClick
+  onAddClick,
+  initialStatusFilter = ''
 }) => {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [klimaatFilter, setKlimaatFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
   const [sortBy, setSortBy] = useState('naam');
   const [sortAsc, setSortAsc] = useState(true);
+
+  React.useEffect(() => {
+    if (initialStatusFilter !== undefined) {
+      setStatusFilter(initialStatusFilter);
+    }
+  }, [initialStatusFilter]);
 
   const activeWines = wines.filter(w => w.aantal > 0);
 

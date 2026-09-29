@@ -36,6 +36,7 @@ export default function App() {
   });
 
   const [activeTab, setActiveTab] = useState<'overview' | 'calendar' | 'stock' | 'stats' | 'advice' | 'archive'>('overview');
+  const [stockStatusFilter, setStockStatusFilter] = useState<string>('');
   const [selectedWine, setSelectedWine] = useState<Wine | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isTonightModalOpen, setIsTonightModalOpen] = useState(false);
@@ -319,7 +320,10 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => setActiveTab('stock')}
+            onClick={() => {
+              setStockStatusFilter('');
+              setActiveTab('stock');
+            }}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
               activeTab === 'stock'
                 ? 'bg-rose-900 text-white shadow-sm'
@@ -392,6 +396,10 @@ export default function App() {
             onToggleFavorite={handleToggleFavorite}
             onUpdateWine={handleUpdateWine}
             onNavigateToCalendar={() => setActiveTab('calendar')}
+            onNavigateToStock={(filter) => {
+              setStockStatusFilter(filter || '');
+              setActiveTab('stock');
+            }}
             onNavigateToAdvice={() => setActiveTab('advice')}
             onNavigateToStats={() => setActiveTab('stats')}
             onOpenTonightSommelier={() => setIsTonightModalOpen(true)}
@@ -414,6 +422,7 @@ export default function App() {
             onDrinkOne={handleDrinkOne}
             onToggleFavorite={handleToggleFavorite}
             onAddClick={() => setIsAddModalOpen(true)}
+            initialStatusFilter={stockStatusFilter}
           />
         )}
 
@@ -512,7 +521,10 @@ export default function App() {
         </button>
 
         <button
-          onClick={() => setActiveTab('stock')}
+          onClick={() => {
+            setStockStatusFilter('');
+            setActiveTab('stock');
+          }}
           className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition cursor-pointer ${
             activeTab === 'stock'
               ? 'text-rose-400 bg-rose-950/50'
