@@ -48,8 +48,8 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
     aantal: 1,
     plank: '1',
     temperatuur: '16–18 °C',
-    klimaatAdvies: '++',
-    klimaatReden: 'Cruciale bewaarwijn met stabiele bewaarbehoefte.',
+    klimaatAdvies: undefined,
+    klimaatReden: '',
     favorite: false,
     notes: [],
     activity: []
@@ -411,9 +411,18 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
                     </div>
                   )}
                   {!isScanning && !scanError && (
-                    <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Etiket verwerkt. Controleer hieronder de gegevens.</span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
+                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                        <span>Etiket succesvol herkend & ingevuld!</span>
+                      </div>
+                      {formData.klimaatAdvies && (
+                        <div className="text-[11px] text-stone-300 flex items-center gap-1.5 bg-stone-900/90 px-2.5 py-1 rounded-lg border border-stone-800">
+                          <span className="font-bold text-amber-300">Advies: {formData.klimaatAdvies}</span>
+                          <span>·</span>
+                          <span className="truncate">{formData.klimaatReden || 'Bewaarbehoefte berekend'}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -464,81 +473,6 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
                   Als aparte fles invoeren
                 </button>
               </div>
-            </div>
-          )}
-
-          {/* Sommelier Space Swap Suggestion Banner if cabinet is full and wine has aging potential */}
-          {isCabinetFull && (isAgingWine || formData.plank !== '') && (
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/70 via-stone-850 to-stone-900 border border-amber-800/80 space-y-3">
-              <div className="flex items-start gap-2.5">
-                <ArrowRightLeft className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-amber-200">
-                    Klimaatkast is 100% vol ({inCabinetCount}/{cabinetCapacity} flessen)
-                  </h4>
-                  <p className="text-xs text-stone-300 leading-relaxed">
-                    Omdat deze wijn bewaarpotentieel heeft, adviseert de sommelier om een fles met lagere prioriteit of kortere horizon naar 'Donker/Rustig' te verplaatsen:
-                  </p>
-                </div>
-              </div>
-
-              {selectedSwapCandidate ? (
-                <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-800/80 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <div>
-                      <span className="font-bold text-emerald-200">
-                        Ruil geselecteerd: {selectedSwapCandidate.wine.naam}
-                      </span>
-                      <p className="text-[11px] text-stone-300">
-                        Nieuwe wijn wordt op <strong>Plank {selectedSwapCandidate.plank}</strong> gelegd. De oude fles verhuist naar Donker/Rustig.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSwapCandidate(null)}
-                    className="text-[11px] text-stone-400 hover:text-stone-200 underline cursor-pointer"
-                  >
-                    Wijzigen
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2 pt-1">
-                  <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">
-                    Aanbevolen ruilkandidaten:
-                  </span>
-                  <div className="space-y-1.5">
-                    {swapCandidates.slice(0, 3).map(c => (
-                      <div
-                        key={c.wine.id}
-                        className="p-2.5 rounded-xl bg-stone-900/90 border border-stone-800 hover:border-amber-700/60 flex items-center justify-between gap-2 text-xs transition"
-                      >
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-stone-100">{c.wine.naam}</span>
-                            <span className="font-mono text-[10px] bg-stone-800 text-stone-300 px-1.5 py-0.5 rounded border border-stone-700">
-                              Plank {c.plank}
-                            </span>
-                            <span className="text-[10px] text-amber-300 font-medium">
-                              {c.badge}
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-stone-400 mt-0.5">{c.reason}</p>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => handleSelectSwap(c)}
-                          className="px-2.5 py-1.5 rounded-lg bg-amber-800 hover:bg-amber-700 text-white font-bold text-[11px] transition shrink-0 cursor-pointer shadow-sm"
-                        >
-                          Ruil plek
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -681,7 +615,7 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
                 onChange={e => handleFieldChange('klimaatAdvies', e.target.value as KlimaatAdvies)}
                 className="w-full px-3 py-2 rounded-xl bg-stone-800 border border-stone-700 text-stone-100 text-sm focus:outline-none focus:border-rose-500 font-semibold"
               >
-                <option value="++">++ Moet er écht in</option>
+                <option value="++">++ Moet er écht in (lange bewaring)</option>
                 <option value="+">+ Aanbevolen</option>
                 <option value="+/-">+/- Indien ruimte over</option>
                 <option value="-">- Niet nodig</option>
@@ -714,6 +648,81 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
               />
             </div>
           </div>
+
+          {/* Conditional Sommelier Swap Suggestion: ONLY when cabinet is full, wine has ++ advice, and shelf is selected */}
+          {isCabinetFull && formData.klimaatAdvies === '++' && Boolean(formData.naam && formData.naam.trim()) && formData.plank !== '' && (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/70 via-stone-850 to-stone-900 border border-amber-800/80 shadow-md space-y-3 animate-in fade-in slide-in-from-bottom-2">
+              <div className="flex items-start gap-2.5">
+                <ArrowRightLeft className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-amber-200">
+                    Klimaatkast is 100% vol ({inCabinetCount}/{cabinetCapacity} flessen) · ++ Bewaaradvies
+                  </h4>
+                  <p className="text-xs text-stone-300 leading-relaxed">
+                    Omdat deze wijn het hoogste bewaaradvies (<strong className="text-amber-300">++</strong>) heeft, adviseert de sommelier om een fles met lagere prioriteit naar <em>Donker/Rustig</em> te verplaatsen:
+                  </p>
+                </div>
+              </div>
+
+              {selectedSwapCandidate ? (
+                <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-800/80 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div>
+                      <span className="font-bold text-emerald-200">
+                        Ruil geselecteerd: {selectedSwapCandidate.wine.naam}
+                      </span>
+                      <p className="text-[11px] text-stone-300">
+                        Nieuwe wijn wordt op <strong>Plank {selectedSwapCandidate.plank}</strong> gelegd. De oude fles verhuist naar Donker/Rustig.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSwapCandidate(null)}
+                    className="text-[11px] text-stone-400 hover:text-stone-200 underline cursor-pointer"
+                  >
+                    Wijzigen
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2 pt-1">
+                  <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">
+                    Aanbevolen ruilkandidaten:
+                  </span>
+                  <div className="space-y-1.5">
+                    {swapCandidates.slice(0, 3).map(c => (
+                      <div
+                        key={c.wine.id}
+                        className="p-2.5 rounded-xl bg-stone-900/90 border border-stone-800 hover:border-amber-700/60 flex items-center justify-between gap-2 text-xs transition"
+                      >
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-stone-100">{c.wine.naam}</span>
+                            <span className="font-mono text-[10px] bg-stone-800 text-stone-300 px-1.5 py-0.5 rounded border border-stone-700">
+                              Plank {c.plank}
+                            </span>
+                            <span className="text-[10px] text-amber-300 font-medium">
+                              {c.badge}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-stone-400 mt-0.5">{c.reason}</p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSelectSwap(c)}
+                          className="px-2.5 py-1.5 rounded-lg bg-amber-800 hover:bg-amber-700 text-white font-bold text-[11px] transition shrink-0 cursor-pointer shadow-sm"
+                        >
+                          Ruil plek
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-medium text-stone-400 mb-1">Klimaatkast Argumentatie</label>
