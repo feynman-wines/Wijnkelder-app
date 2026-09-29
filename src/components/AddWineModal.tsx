@@ -5,6 +5,7 @@ import { evaluateKlimaatAdvies } from '../utils/klimaatAdvies';
 import { getCabinetSwapCandidates, SwapCandidate } from '../utils/swapSuggestions';
 import { compressImageFile } from '../utils/imageCompressor';
 import { callBackendApi } from '../utils/apiConfig';
+import { findMatchingCellarWine, WineMatchResult } from '../utils/wineMatcher';
 
 interface AddWineModalProps {
   isOpen: boolean;
@@ -71,30 +72,13 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
   const backGalleryInputRef = useRef<HTMLInputElement>(null);
 
   // Smart check: Does this wine already exist in user's cellar?
-  const matchingExistingWine = React.useMemo(() => {
+  const matchResult: WineMatchResult | null = React.useMemo(() => {
     if (ignoreDuplicateWarning) return null;
-    const nameStr = (formData.naam || '').trim().toLowerCase();
-    if (nameStr.length < 3) return null;
+    return findMatchingCellarWine(formData, wines);
+  }, [formData.naam, formData.wijnhuis, formData.jaar, wines, ignoreDuplicateWarning]);
 
-    const targetYear = formData.jaar ? String(formData.jaar).trim() : '';
-
-    return wines.find(w => {
-      const wName = (w.naam || '').trim().toLowerCase();
-      const wHouse = (w.wijnhuis || '').trim().toLowerCase();
-      const wYear = w.jaar ? String(w.jaar).trim() : '';
-
-      // If both specify a year, they must match
-      if (targetYear && wYear && targetYear !== wYear) return false;
-
-      // Exact match or substring match
-      const nameMatch = wName === nameStr || 
-        wName.includes(nameStr) || 
-        nameStr.includes(wName) ||
-        (wHouse && nameStr.includes(wHouse));
-
-      return nameMatch;
-    });
-  }, [formData.naam, formData.jaar, wines, ignoreDuplicateWarning]);
+  const matchingExistingWine = matchResult?.existingWine || null;
+  const isExactVintageMatch = matchResult?.isExactVintage ?? false;
 
   const handleIncrementExisting = () => {
     if (!matchingExistingWine || !onUpdateWine) return;
@@ -142,28 +126,23 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
     });
   };
 
-  const processAndScanPhotos = async (
+  const handlePhotoSelect = async (
     target: 'front' | 'back',
     file: File
   ) => {
     try {
-      setIsScanning(true);
-      setScanMessage(target === 'front' ? 'Vooretiket comprimeren en scannen...' : 'Achteretiket verwerken & data combineren...');
       setScanError('');
-
       const compressed = await compressImageFile(file, 1280, 0.85);
 
-      const newFront = target === 'front' ? compressed : frontPhoto;
-      const newBack = target === 'back' ? compressed : backPhoto;
-
-      if (target === 'front') setFrontPhoto(compressed);
-      if (target === 'back') setBackPhoto(compressed);
-
-      await executeAiScan(newFront, newBack);
+      if (target === 'front') {
+        setFrontPhoto(compressed);
+      } else {
+        setBackPhoto(compressed);
+      }
+      setScanMessage('Foto geladen. Klik op "Etiket scannen" om de AI-analyse te starten.');
     } catch (err: any) {
       console.error('Photo processing error:', err);
       setScanError(err.message || 'Kon foto niet inlezen.');
-      setIsScanning(false);
     }
   };
 
@@ -405,14 +384,14 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
               accept="image/*"
               capture="environment"
               className="hidden"
-              onChange={e => e.target.files?.[0] && processAndScanPhotos('front', e.target.files[0])}
+              onChange={e => e.target.files?.[0] && handlePhotoSelect('front', e.target.files[0])}
             />
             <input
               type="file"
               ref={frontGalleryInputRef}
               accept="image/*"
               className="hidden"
-              onChange={e => e.target.files?.[0] && processAndScanPhotos('front', e.target.files[0])}
+              onChange={e => e.target.files?.[0] && handlePhotoSelect('front', e.target.files[0])}
             />
 
             {/* Hidden Inputs for Back Label */}
@@ -422,14 +401,14 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
               accept="image/*"
               capture="environment"
               className="hidden"
-              onChange={e => e.target.files?.[0] && processAndScanPhotos('back', e.target.files[0])}
+              onChange={e => e.target.files?.[0] && handlePhotoSelect('back', e.target.files[0])}
             />
             <input
               type="file"
               ref={backGalleryInputRef}
               accept="image/*"
               className="hidden"
-              onChange={e => e.target.files?.[0] && processAndScanPhotos('back', e.target.files[0])}
+              onChange={e => e.target.files?.[0] && handlePhotoSelect('back', e.target.files[0])}
             />
 
             {/* Dual Photo Slots Grid */}
@@ -443,7 +422,7 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
                   </div>
                   {frontPhoto && (
                     <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Gekoppeld
+                      <CheckCircle2 className="w-3 h-3" /> Klaar voor scan
                     </span>
                   )}
                 </div>
@@ -464,14 +443,11 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
                           disabled={isScanning}
                           className="px-2 py-1 rounded-md bg-stone-800 hover:bg-stone-700 text-stone-300 text-[11px] border border-stone-700 cursor-pointer"
                         >
-                          Opnieuw
+                          Wijzigen
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            setFrontPhoto(null);
-                            if (backPhoto) executeAiScan(null, backPhoto);
-                          }}
+                          onClick={() => setFrontPhoto(null)}
                           className="p-1 rounded-md bg-stone-800 hover:bg-rose-950 text-stone-400 hover:text-rose-300 border border-stone-700 cursor-pointer"
                           title="Voorkant verwijderen"
                         >
@@ -513,7 +489,7 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
                   </div>
                   {backPhoto && (
                     <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Gekoppeld
+                      <CheckCircle2 className="w-3 h-3" /> Klaar voor scan
                     </span>
                   )}
                 </div>
@@ -534,14 +510,11 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
                           disabled={isScanning}
                           className="px-2 py-1 rounded-md bg-stone-800 hover:bg-stone-700 text-stone-300 text-[11px] border border-stone-700 cursor-pointer"
                         >
-                          Opnieuw
+                          Wijzigen
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            setBackPhoto(null);
-                            if (frontPhoto) executeAiScan(frontPhoto, null);
-                          }}
+                          onClick={() => setBackPhoto(null)}
                           className="p-1 rounded-md bg-stone-800 hover:bg-rose-950 text-stone-400 hover:text-rose-300 border border-stone-700 cursor-pointer"
                           title="Achterkant verwijderen"
                         >
@@ -574,6 +547,34 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Explicit Scan Button (User clicks when ready after taking 1 or 2 photos) */}
+            {(frontPhoto || backPhoto) && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => executeAiScan(frontPhoto, backPhoto)}
+                  disabled={isScanning}
+                  className="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-gradient-to-r from-rose-600 via-rose-700 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-rose-950/60 flex items-center justify-center gap-2 transition-all transform active:scale-98 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isScanning ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                      <span>{scanMessage || 'Bezig met AI-analyse...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 text-amber-300 shrink-0" />
+                      <span>
+                        {frontPhoto && backPhoto
+                          ? '✨ Voor- én achteretiket scannen met AI'
+                          : '✨ Etiket scannen met AI'}
+                      </span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
 
             {/* Scan Status & Feedback Bar */}
             {(isScanning || scanError || scanMessage || (frontPhoto || backPhoto)) && (
@@ -611,13 +612,20 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
 
           {/* Smart Duplicate / Existing Wine Recognition Banner */}
           {matchingExistingWine && (
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/70 via-stone-850 to-stone-900 border border-purple-800/80 shadow-lg space-y-3 animate-in fade-in slide-in-from-top-2">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/80 via-stone-850 to-stone-900 border-2 border-purple-600/80 shadow-xl space-y-3 animate-in fade-in slide-in-from-top-2">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-base">💡</span>
-                  <h4 className="text-xs sm:text-sm font-bold text-purple-200">
-                    Bestaande wijn herkend in je kelder!
-                  </h4>
+                  <span className="text-xl">✨</span>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-bold text-purple-200">
+                      {isExactVintageMatch
+                        ? 'Exacte wijn & jaargang al in je kelder!'
+                        : `Wijn al aanwezig in kelder (Jaargang ${matchingExistingWine.jaar || 'ongekend'})`}
+                    </h4>
+                    <p className="text-[11px] text-purple-300/80">
+                      {matchingExistingWine.wijnhuis ? `${matchingExistingWine.wijnhuis} · ` : ''}{matchingExistingWine.druif || matchingExistingWine.type}
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -628,20 +636,25 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
                 </button>
               </div>
 
-              <p className="text-xs text-stone-300 leading-relaxed">
-                Je hebt <strong className="text-purple-300">{matchingExistingWine.naam}</strong> {matchingExistingWine.jaar ? `(${matchingExistingWine.jaar})` : ''} al geregistreerd:
-                <br />
-                📍 <strong>{matchingExistingWine.aantal} fles(sen)</strong> op <strong>{matchingExistingWine.plank ? `Plank ${matchingExistingWine.plank}` : matchingExistingWine.opslag}</strong>.
-              </p>
+              <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-900/50 text-xs text-stone-300 space-y-1">
+                <div>
+                  📍 Huidige voorraad: <strong className="text-purple-200">{matchingExistingWine.aantal} fles(sen)</strong> op <strong className="text-purple-200">{matchingExistingWine.plank ? `Kastplank ${matchingExistingWine.plank}` : matchingExistingWine.opslag}</strong>
+                </div>
+                {matchingExistingWine.score && (
+                  <div className="text-[11px] text-amber-300/90">
+                    ⭐ Vivino: {matchingExistingWine.score} · Drinkvenster: {matchingExistingWine.optimaal || matchingExistingWine.drinkenTot || 'Niet gespecificeerd'}
+                  </div>
+                )}
+              </div>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
                 <button
                   type="button"
                   onClick={handleIncrementExisting}
-                  className="flex-1 px-3.5 py-2 rounded-xl bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-purple-950/50 cursor-pointer"
+                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-purple-950/60 cursor-pointer"
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Voorraad verhogen (+{formData.aantal || 1} fles)</span>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Bestaande voorraad verhogen (+{formData.aantal || 1} fles ➔ Totaal {(Number(matchingExistingWine.aantal) || 0) + (Number(formData.aantal) || 1)} flessen)</span>
                 </button>
 
                 <button
