@@ -274,7 +274,7 @@ Bepaal tevens sommelier-inzichten:
     try {
       response = await callGeminiWithRetry(() =>
         ai.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model: 'gemini-2.5-flash',
           contents: { parts: [...imageParts, { text: textPrompt }] },
           config: {
             systemInstruction: 'Je bent een meester-vinoloog en scanner van wijnetiketten. Herken accuraat de producent, jaargang, herkomst, druif en geef deskundig bewaar- en klimaatkastadvies in het Nederlands.',
@@ -291,23 +291,43 @@ Bepaal tevens sommelier-inzichten:
         })
       );
     } catch (primaryErr: any) {
-      console.warn('Gemini 3.8 flash scan error, trying gemini-3.1-flash-lite:', primaryErr?.message);
-      response = await ai.models.generateContent({
-        model: 'gemini-3.1-flash-lite',
-        contents: { parts: [...imageParts, { text: textPrompt }] },
-        config: {
-          systemInstruction: 'Je bent een meester-vinoloog en scanner van wijnetiketten. Herken accuraat de producent, jaargang, herkomst, druif en geef deskundig bewaar- en klimaatkastadvies in het Nederlands.',
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: schemaProperties,
-            required: [
-              'naam', 'wijnhuis', 'jaar', 'type', 'land', 'streek',
-              'druif', 'optimaal', 'drinkenTot', 'eten', 'klimaatAdvies', 'klimaatReden'
-            ]
+      console.warn('Gemini 2.5 flash scan error, trying gemini-3.1-flash-lite:', primaryErr?.message);
+      try {
+        response = await ai.models.generateContent({
+          model: 'gemini-3.1-flash-lite',
+          contents: { parts: [...imageParts, { text: textPrompt }] },
+          config: {
+            systemInstruction: 'Je bent een meester-vinoloog en scanner van wijnetiketten. Herken accuraat de producent, jaargang, herkomst, druif en geef deskundig bewaar- en klimaatkastadvies in het Nederlands.',
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: schemaProperties,
+              required: [
+                'naam', 'wijnhuis', 'jaar', 'type', 'land', 'streek',
+                'druif', 'optimaal', 'drinkenTot', 'eten', 'klimaatAdvies', 'klimaatReden'
+              ]
+            }
           }
-        }
-      });
+        });
+      } catch (secErr: any) {
+        console.warn('Gemini 3.1 flash-lite scan error, trying gemini-2.5-flash-lite:', secErr?.message);
+        response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash-lite',
+          contents: { parts: [...imageParts, { text: textPrompt }] },
+          config: {
+            systemInstruction: 'Je bent een meester-vinoloog en scanner van wijnetiketten. Herken accuraat de producent, jaargang, herkomst, druif en geef deskundig bewaar- en klimaatkastadvies in het Nederlands.',
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: schemaProperties,
+              required: [
+                'naam', 'wijnhuis', 'jaar', 'type', 'land', 'streek',
+                'druif', 'optimaal', 'drinkenTot', 'eten', 'klimaatAdvies', 'klimaatReden'
+              ]
+            }
+          }
+        });
+      }
     }
 
     const rawText = response.text || '{}';

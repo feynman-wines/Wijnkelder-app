@@ -244,7 +244,14 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
       );
     } catch (err: any) {
       console.warn('AI scan failed:', err);
-      setScanError(err.message || 'Automatische herkenning mislukt. Vul de gegevens handmatig in.');
+      const isNetworkOrFetchError = err?.message?.toLowerCase().includes('failed to fetch') || 
+                                    err?.message?.toLowerCase().includes('network') ||
+                                    err?.message?.toLowerCase().includes('load failed');
+      if (isNetworkOrFetchError) {
+        setScanError('AI-scanner vereist de actieve cloud-omgeving. Op statische GitHub Pages kun je de wijn hieronder direct handmatig invullen.');
+      } else {
+        setScanError(err.message || 'Automatische herkenning mislukt. Vul de gegevens handmatig in.');
+      }
     } finally {
       setIsScanning(false);
     }
