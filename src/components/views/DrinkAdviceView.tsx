@@ -3,6 +3,7 @@ import { Utensils, Sparkles, Loader2, Info, Thermometer, CheckCircle2, AlertTria
 import { Wine } from '../../types/wine';
 import { findWinePairings, PairingResult } from '../../utils/pairingEngine';
 import { WineCard } from '../WineCard';
+import { callBackendApi } from '../../utils/apiConfig';
 
 interface DrinkAdviceViewProps {
   wines: Wine[];
@@ -69,7 +70,7 @@ export const DrinkAdviceView: React.FC<DrinkAdviceViewProps> = ({
     setAiResponse(null);
 
     try {
-      const res = await fetch('/api/sommelier', {
+      const res = await callBackendApi('/api/sommelier', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -4,6 +4,7 @@ import { Wine, KlimaatAdvies } from '../types/wine';
 import { evaluateKlimaatAdvies } from '../utils/klimaatAdvies';
 import { getCabinetSwapCandidates, SwapCandidate } from '../utils/swapSuggestions';
 import { compressImageFile } from '../utils/imageCompressor';
+import { callBackendApi } from '../utils/apiConfig';
 
 interface AddWineModalProps {
   isOpen: boolean;
@@ -200,7 +201,7 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
     setScanError('');
 
     try {
-      const response = await fetch('/api/scan-wine', {
+      const response = await callBackendApi('/api/scan-wine', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ images: imagesToScan })
