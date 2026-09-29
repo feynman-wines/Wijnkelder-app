@@ -3,6 +3,7 @@ import { X, Camera, Image as ImageIcon, Sparkles, Loader2, CheckCircle2, AlertCi
 import { Wine, KlimaatAdvies } from '../types/wine';
 import { evaluateKlimaatAdvies } from '../utils/klimaatAdvies';
 import { getCabinetSwapCandidates, SwapCandidate } from '../utils/swapSuggestions';
+import { compressImageFile } from '../utils/imageCompressor';
 
 interface AddWineModalProps {
   isOpen: boolean;
@@ -132,22 +133,29 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
     });
   };
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = reader.result as string;
+    try {
+      setIsScanning(true);
+      setScanMessage('Foto optimaliseren en etiket scannen...');
+      setScanError('');
+
+      // Compress and resize image in-browser to prevent payload size issues
+      const { base64, mimeType } = await compressImageFile(file, 1280, 0.85);
       setPhotoPreview(base64);
-      scanLabelWithAI(base64, file.type || 'image/jpeg');
-    };
-    reader.readAsDataURL(file);
+      await scanLabelWithAI(base64, mimeType);
+    } catch (err: any) {
+      console.error('Photo processing error:', err);
+      setScanError(err.message || 'Kon foto niet inlezen.');
+      setIsScanning(false);
+    }
   };
 
   const scanLabelWithAI = async (base64Image: string, mimeType: string) => {
     setIsScanning(true);
-    setScanMessage('Etiket scannen en Vivino-data opzoeken...');
+    setScanMessage('Etiket analyseren en Vivino-data ophalen via AI...');
     setScanError('');
 
     try {
@@ -160,7 +168,12 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error('Kon etiket niet analyseren via AI.');
+        let errMsg = 'Kon etiket niet analyseren via AI.';
+        try {
+          const errData = await response.json();
+          if (errData.error) errMsg = errData.error;
+        } catch {}
+        throw new Error(errMsg);
       }
 
       const scannedData = await response.json();
@@ -182,8 +195,8 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
 
       setScanMessage('Wijn succesvol herkend!');
     } catch (err: any) {
-      console.warn('AI scan failed, falling back to basic extraction:', err);
-      setScanError('Automatische herkenning mislukt. Vul de gegevens handmatig in.');
+      console.warn('AI scan failed, falling back:', err);
+      setScanError(err.message || 'Automatische herkenning mislukt. Vul de gegevens handmatig in.');
     } finally {
       setIsScanning(false);
     }

@@ -203,9 +203,48 @@ Bepaal tevens sommelier-inzichten:
 - Klimaatkastreden: een overtuigende sommelier-argumentatie waarom deze specifieke wijn wel/niet in de klimaatkast moet.`,
     };
 
-    const response = await callGeminiWithRetry(() =>
-      ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+    let response;
+    try {
+      response = await callGeminiWithRetry(() =>
+        ai.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: { parts: [imagePart, textPart] },
+          config: {
+            systemInstruction: 'Je bent een meester-vinoloog en scanner van wijnetiketten. Herken accuraat de producent, jaargang, herkomst, druif en geef deskundig bewaar- en klimaatkastadvies in het Nederlands.',
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                naam: { type: Type.STRING, description: 'Naam van de wijn' },
+                wijnhuis: { type: Type.STRING, description: 'Producent of wijnhuis' },
+                jaar: { type: Type.STRING, description: 'Oogstjaar of NV' },
+                type: { type: Type.STRING, description: 'Rood, Wit & rosé, of Overig' },
+                land: { type: Type.STRING, description: 'Land van herkomst' },
+                streek: { type: Type.STRING, description: 'Streek of appellation' },
+                druif: { type: Type.STRING, description: 'Druivenras(sen)' },
+                alcohol: { type: Type.STRING, description: 'Alcoholpercentage bijv. 13.5%' },
+                prijs: { type: Type.STRING, description: 'Prijsindicatie bijv. €25–35' },
+                score: { type: Type.NUMBER, description: 'Geschatte Vivino score (bijv. 4.2)' },
+                optimaal: { type: Type.STRING, description: 'Optimaal drinkvenster (bijv. 2026–2034)' },
+                drinkenTot: { type: Type.STRING, description: 'Uiterste drinkjaar (bijv. 2038)' },
+                temperatuur: { type: Type.STRING, description: 'Aanbevolen serveertemperatuur (bijv. 16–18 °C)' },
+                eten: { type: Type.STRING, description: 'Spijssuggesties gescheiden door komma' },
+                opmerkingen: { type: Type.STRING, description: 'Toelichting op houtrijping, vinificatie en karakter' },
+                klimaatAdvies: { type: Type.STRING, description: 'Strikt een van: ++, +, +/-, -, --' },
+                klimaatReden: { type: Type.STRING, description: 'Onderbouwing voor klimaatkastplaatsing' }
+              },
+              required: [
+                'naam', 'wijnhuis', 'jaar', 'type', 'land', 'streek',
+                'druif', 'optimaal', 'drinkenTot', 'eten', 'klimaatAdvies', 'klimaatReden'
+              ]
+            }
+          }
+        })
+      );
+    } catch (primaryErr: any) {
+      console.warn('Gemini 3.8 flash scan error, trying gemini-3.1-flash-lite:', primaryErr?.message);
+      response = await ai.models.generateContent({
+        model: 'gemini-3.1-flash-lite',
         contents: { parts: [imagePart, textPart] },
         config: {
           systemInstruction: 'Je bent een meester-vinoloog en scanner van wijnetiketten. Herken accuraat de producent, jaargang, herkomst, druif en geef deskundig bewaar- en klimaatkastadvies in het Nederlands.',
@@ -237,10 +276,12 @@ Bepaal tevens sommelier-inzichten:
             ]
           }
         }
-      })
-    );
+      });
+    }
 
-    const result = JSON.parse(response.text || '{}');
+    const rawText = response.text || '{}';
+    const cleaned = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+    const result = JSON.parse(cleaned);
     return res.json(result);
   } catch (error: any) {
     console.error('Scan error:', error);
