@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Plus, Download, Upload, RotateCcw, Wine as WineIcon, Sparkles, FileSpreadsheet, Settings, Trash2, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { Wine } from '../types/wine';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface HeaderProps {
   wines: Wine[];
@@ -54,6 +55,8 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
+          <PWAInstallButton />
+
           {onOpenTonightSommelier && (
             <button
               onClick={onOpenTonightSommelier}

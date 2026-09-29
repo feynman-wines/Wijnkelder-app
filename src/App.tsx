@@ -15,6 +15,7 @@ import { NoteModal } from './components/NoteModal';
 import { TonightSommelierModal } from './components/TonightSommelierModal';
 import { RebuyModal } from './components/RebuyModal';
 import { exportToExcel } from './utils/exportExcel';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 const LOCAL_STORAGE_KEY = 'wijnkelder_wines_v2';
 const CABINET_CAPACITY_KEY = 'wijnkelder_cabinet_capacity_v2';
@@ -591,6 +592,9 @@ export default function App() {
           <span>{toastMessage}</span>
         </div>
       )}
+
+      {/* PWA Offline indicator */}
+      <OfflineIndicator />
     </div>
   );
 }
