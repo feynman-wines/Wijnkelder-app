@@ -168,26 +168,62 @@ Als er geen perfecte match in de kelder ligt, kies dan de best passende opties u
   }
 });
 
-// Wine label scanning and auto-filling endpoint
+// Wine label scanning and auto-filling endpoint (supports front & back label photos)
 app.post('/api/scan-wine', async (req, res) => {
   try {
-    const { imageBase64, mimeType = 'image/jpeg' } = req.body;
-    if (!imageBase64) {
-      return res.status(400).json({ error: 'Geen afbeelding ontvangen.' });
+    const { imageBase64, mimeType = 'image/jpeg', images } = req.body;
+    
+    // Normalize to list of images (support 1 or 2 photos)
+    const imageList: Array<{ data: string; mimeType: string }> = [];
+
+    if (Array.isArray(images) && images.length > 0) {
+      for (const img of images) {
+        if (img.imageBase64 || img.base64) {
+          const raw = (img.imageBase64 || img.base64).replace(/^data:image\/\w+;base64,/, '');
+          imageList.push({
+            data: raw,
+            mimeType: img.mimeType || 'image/jpeg'
+          });
+        }
+      }
+    } else if (imageBase64) {
+      const raw = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+      imageList.push({
+        data: raw,
+        mimeType: mimeType || 'image/jpeg'
+      });
     }
 
-    // Clean base64 string
-    const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    if (imageList.length === 0) {
+      return res.status(400).json({ error: 'Geen afbeelding(en) ontvangen.' });
+    }
 
-    const imagePart = {
+    const imageParts = imageList.map(img => ({
       inlineData: {
-        mimeType: mimeType,
-        data: cleanBase64,
-      },
-    };
+        mimeType: img.mimeType,
+        data: img.data
+      }
+    }));
 
-    const textPart = {
-      text: `Analyseer dit wijnetiket grondig.
+    const textPrompt = imageList.length > 1
+      ? `Analyseer de bijgevoegde foto's (voor- én achteretiket) van deze wijn grondig.
+Combineer alle informatie van beide etiketten:
+- Vooretiket: meestal naam, producent/château, oogstjaar, streek en classificatie.
+- Achteretiket: vaak specifieke druivenrassen, alcoholpercentage, smaakomschrijving, vinificatie en serveersuggesties.
+
+Lees en bepaal tevens de sommelier-inzichten:
+- Type: 'Rood', 'Wit & rosé', of 'Overig'
+- Geschatte Vivino-score (tussen 3.0 en 5.0) en prijsindicatie in Nederland (€x–y)
+- Optimaal drinkvenster (bijv. "2026–2032") en drinken tot (bijv. "2035")
+- Passend spijsadvies (korte opsomming van gerechten)
+- Klimaatkastadvies: kies strikt één van de volgende 5 codes:
+  '++' = Moet er écht in (lange bewaring >7-15 jaar, kwetsbare topwijn)
+  '+' = Aanbevolen (kwaliteitswijn 3-7 jaar)
+  '+/-' = Indien ruimte over (stevige wijn voor 1-3 jaar, koele kelder volstaat ook)
+  '-' = Niet nodig (jonge doordrinker, binnen 12 maanden op)
+  '--' = Plekverspilling (slobberwijn of direct drinken)
+- Klimaatkastreden: een overtuigende sommelier-argumentatie waarom deze specifieke wijn wel/niet in de klimaatkast moet.`
+      : `Analyseer dit wijnetiket grondig.
 Lees de tekst op het etiket (naam, wijnhuis/domein, druivenras(sen), oogstjaar/vintage, herkomstbenaming, alcoholpercentage).
 Bepaal tevens sommelier-inzichten:
 - Type: 'Rood', 'Wit & rosé', of 'Overig'
@@ -200,7 +236,26 @@ Bepaal tevens sommelier-inzichten:
   '+/-' = Indien ruimte over (stevige wijn voor 1-3 jaar, koele kelder volstaat ook)
   '-' = Niet nodig (jonge doordrinker, binnen 12 maanden op)
   '--' = Plekverspilling (slobberwijn of direct drinken)
-- Klimaatkastreden: een overtuigende sommelier-argumentatie waarom deze specifieke wijn wel/niet in de klimaatkast moet.`,
+- Klimaatkastreden: een overtuigende sommelier-argumentatie waarom deze specifieke wijn wel/niet in de klimaatkast moet.`;
+
+    const schemaProperties = {
+      naam: { type: Type.STRING, description: 'Naam van de wijn' },
+      wijnhuis: { type: Type.STRING, description: 'Producent of wijnhuis' },
+      jaar: { type: Type.STRING, description: 'Oogstjaar of NV' },
+      type: { type: Type.STRING, description: 'Rood, Wit & rosé, of Overig' },
+      land: { type: Type.STRING, description: 'Land van herkomst' },
+      streek: { type: Type.STRING, description: 'Streek of appellation' },
+      druif: { type: Type.STRING, description: 'Druivenras(sen)' },
+      alcohol: { type: Type.STRING, description: 'Alcoholpercentage bijv. 13.5%' },
+      prijs: { type: Type.STRING, description: 'Prijsindicatie bijv. €25–35' },
+      score: { type: Type.NUMBER, description: 'Geschatte Vivino score (bijv. 4.2)' },
+      optimaal: { type: Type.STRING, description: 'Optimaal drinkvenster (bijv. 2026–2034)' },
+      drinkenTot: { type: Type.STRING, description: 'Uiterste drinkjaar (bijv. 2038)' },
+      temperatuur: { type: Type.STRING, description: 'Aanbevolen serveertemperatuur (bijv. 16–18 °C)' },
+      eten: { type: Type.STRING, description: 'Spijssuggesties gescheiden door komma' },
+      opmerkingen: { type: Type.STRING, description: 'Toelichting op houtrijping, vinificatie en karakter' },
+      klimaatAdvies: { type: Type.STRING, description: 'Strikt een van: ++, +, +/-, -, --' },
+      klimaatReden: { type: Type.STRING, description: 'Onderbouwing voor klimaatkastplaatsing' }
     };
 
     let response;
@@ -208,31 +263,13 @@ Bepaal tevens sommelier-inzichten:
       response = await callGeminiWithRetry(() =>
         ai.models.generateContent({
           model: 'gemini-3.8-flash',
-          contents: { parts: [imagePart, textPart] },
+          contents: { parts: [...imageParts, { text: textPrompt }] },
           config: {
             systemInstruction: 'Je bent een meester-vinoloog en scanner van wijnetiketten. Herken accuraat de producent, jaargang, herkomst, druif en geef deskundig bewaar- en klimaatkastadvies in het Nederlands.',
             responseMimeType: 'application/json',
             responseSchema: {
               type: Type.OBJECT,
-              properties: {
-                naam: { type: Type.STRING, description: 'Naam van de wijn' },
-                wijnhuis: { type: Type.STRING, description: 'Producent of wijnhuis' },
-                jaar: { type: Type.STRING, description: 'Oogstjaar of NV' },
-                type: { type: Type.STRING, description: 'Rood, Wit & rosé, of Overig' },
-                land: { type: Type.STRING, description: 'Land van herkomst' },
-                streek: { type: Type.STRING, description: 'Streek of appellation' },
-                druif: { type: Type.STRING, description: 'Druivenras(sen)' },
-                alcohol: { type: Type.STRING, description: 'Alcoholpercentage bijv. 13.5%' },
-                prijs: { type: Type.STRING, description: 'Prijsindicatie bijv. €25–35' },
-                score: { type: Type.NUMBER, description: 'Geschatte Vivino score (bijv. 4.2)' },
-                optimaal: { type: Type.STRING, description: 'Optimaal drinkvenster (bijv. 2026–2034)' },
-                drinkenTot: { type: Type.STRING, description: 'Uiterste drinkjaar (bijv. 2038)' },
-                temperatuur: { type: Type.STRING, description: 'Aanbevolen serveertemperatuur (bijv. 16–18 °C)' },
-                eten: { type: Type.STRING, description: 'Spijssuggesties gescheiden door komma' },
-                opmerkingen: { type: Type.STRING, description: 'Toelichting op houtrijping, vinificatie en karakter' },
-                klimaatAdvies: { type: Type.STRING, description: 'Strikt een van: ++, +, +/-, -, --' },
-                klimaatReden: { type: Type.STRING, description: 'Onderbouwing voor klimaatkastplaatsing' }
-              },
+              properties: schemaProperties,
               required: [
                 'naam', 'wijnhuis', 'jaar', 'type', 'land', 'streek',
                 'druif', 'optimaal', 'drinkenTot', 'eten', 'klimaatAdvies', 'klimaatReden'
@@ -245,31 +282,13 @@ Bepaal tevens sommelier-inzichten:
       console.warn('Gemini 3.8 flash scan error, trying gemini-3.1-flash-lite:', primaryErr?.message);
       response = await ai.models.generateContent({
         model: 'gemini-3.1-flash-lite',
-        contents: { parts: [imagePart, textPart] },
+        contents: { parts: [...imageParts, { text: textPrompt }] },
         config: {
           systemInstruction: 'Je bent een meester-vinoloog en scanner van wijnetiketten. Herken accuraat de producent, jaargang, herkomst, druif en geef deskundig bewaar- en klimaatkastadvies in het Nederlands.',
           responseMimeType: 'application/json',
           responseSchema: {
             type: Type.OBJECT,
-            properties: {
-              naam: { type: Type.STRING, description: 'Naam van de wijn' },
-              wijnhuis: { type: Type.STRING, description: 'Producent of wijnhuis' },
-              jaar: { type: Type.STRING, description: 'Oogstjaar of NV' },
-              type: { type: Type.STRING, description: 'Rood, Wit & rosé, of Overig' },
-              land: { type: Type.STRING, description: 'Land van herkomst' },
-              streek: { type: Type.STRING, description: 'Streek of appellation' },
-              druif: { type: Type.STRING, description: 'Druivenras(sen)' },
-              alcohol: { type: Type.STRING, description: 'Alcoholpercentage bijv. 13.5%' },
-              prijs: { type: Type.STRING, description: 'Prijsindicatie bijv. €25–35' },
-              score: { type: Type.NUMBER, description: 'Geschatte Vivino score (bijv. 4.2)' },
-              optimaal: { type: Type.STRING, description: 'Optimaal drinkvenster (bijv. 2026–2034)' },
-              drinkenTot: { type: Type.STRING, description: 'Uiterste drinkjaar (bijv. 2038)' },
-              temperatuur: { type: Type.STRING, description: 'Aanbevolen serveertemperatuur (bijv. 16–18 °C)' },
-              eten: { type: Type.STRING, description: 'Spijssuggesties gescheiden door komma' },
-              opmerkingen: { type: Type.STRING, description: 'Toelichting op houtrijping, vinificatie en karakter' },
-              klimaatAdvies: { type: Type.STRING, description: 'Strikt een van: ++, +, +/-, -, --' },
-              klimaatReden: { type: Type.STRING, description: 'Onderbouwing voor klimaatkastplaatsing' }
-            },
+            properties: schemaProperties,
             required: [
               'naam', 'wijnhuis', 'jaar', 'type', 'land', 'streek',
               'druif', 'optimaal', 'drinkenTot', 'eten', 'klimaatAdvies', 'klimaatReden'

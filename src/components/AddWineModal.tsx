@@ -14,6 +14,11 @@ interface AddWineModalProps {
   onUpdateWine?: (updated: Wine) => void;
 }
 
+interface PhotoSlot {
+  base64: string;
+  mimeType: string;
+}
+
 export const AddWineModal: React.FC<AddWineModalProps> = ({
   isOpen,
   onClose,
@@ -24,7 +29,8 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const [photoPreview, setPhotoPreview] = useState<string>('');
+  const [frontPhoto, setFrontPhoto] = useState<PhotoSlot | null>(null);
+  const [backPhoto, setBackPhoto] = useState<PhotoSlot | null>(null);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [scanMessage, setScanMessage] = useState<string>('');
   const [scanError, setScanError] = useState<string>('');
@@ -58,8 +64,10 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
   const [selectedSwapCandidate, setSelectedSwapCandidate] = useState<SwapCandidate | null>(null);
   const [ignoreDuplicateWarning, setIgnoreDuplicateWarning] = useState<boolean>(false);
 
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const frontCameraInputRef = useRef<HTMLInputElement>(null);
+  const frontGalleryInputRef = useRef<HTMLInputElement>(null);
+  const backCameraInputRef = useRef<HTMLInputElement>(null);
+  const backGalleryInputRef = useRef<HTMLInputElement>(null);
 
   // Smart check: Does this wine already exist in user's cellar?
   const matchingExistingWine = React.useMemo(() => {
@@ -133,19 +141,24 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
     });
   };
 
-  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processAndScanPhotos = async (
+    target: 'front' | 'back',
+    file: File
+  ) => {
     try {
       setIsScanning(true);
-      setScanMessage('Foto optimaliseren en etiket scannen...');
+      setScanMessage(target === 'front' ? 'Vooretiket comprimeren en scannen...' : 'Achteretiket verwerken & data combineren...');
       setScanError('');
 
-      // Compress and resize image in-browser to prevent payload size issues
-      const { base64, mimeType } = await compressImageFile(file, 1280, 0.85);
-      setPhotoPreview(base64);
-      await scanLabelWithAI(base64, mimeType);
+      const compressed = await compressImageFile(file, 1280, 0.85);
+
+      const newFront = target === 'front' ? compressed : frontPhoto;
+      const newBack = target === 'back' ? compressed : backPhoto;
+
+      if (target === 'front') setFrontPhoto(compressed);
+      if (target === 'back') setBackPhoto(compressed);
+
+      await executeAiScan(newFront, newBack);
     } catch (err: any) {
       console.error('Photo processing error:', err);
       setScanError(err.message || 'Kon foto niet inlezen.');
@@ -153,18 +166,44 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
     }
   };
 
-  const scanLabelWithAI = async (base64Image: string, mimeType: string) => {
+  const executeAiScan = async (
+    front: PhotoSlot | null,
+    back: PhotoSlot | null
+  ) => {
+    const imagesToScan: Array<{ imageBase64: string; mimeType: string }> = [];
+
+    if (front) {
+      imagesToScan.push({
+        imageBase64: front.base64.split(',')[1] || front.base64,
+        mimeType: front.mimeType
+      });
+    }
+
+    if (back) {
+      imagesToScan.push({
+        imageBase64: back.base64.split(',')[1] || back.base64,
+        mimeType: back.mimeType
+      });
+    }
+
+    if (imagesToScan.length === 0) {
+      setIsScanning(false);
+      return;
+    }
+
     setIsScanning(true);
-    setScanMessage('Etiket analyseren en Vivino-data ophalen via AI...');
+    setScanMessage(
+      imagesToScan.length > 1
+        ? 'Voor- én achteretiket analyseren via AI...'
+        : 'Etiket analyseren en Vivino-data ophalen...'
+    );
     setScanError('');
 
     try {
-      const pureBase64 = base64Image.split(',')[1] || base64Image;
-
       const response = await fetch('/api/scan-wine', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: pureBase64, mimeType })
+        body: JSON.stringify({ images: imagesToScan })
       });
 
       if (!response.ok) {
@@ -172,7 +211,11 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
         try {
           const errData = await response.json();
           if (errData.error) errMsg = errData.error;
-        } catch {}
+        } catch {
+          if (response.status === 404) {
+            errMsg = 'AI-server niet bereikbaar op statische GitHub Pages. Vul de velden hieronder in.';
+          }
+        }
         throw new Error(errMsg);
       }
 
@@ -193,9 +236,13 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
         return updated;
       });
 
-      setScanMessage('Wijn succesvol herkend!');
+      setScanMessage(
+        imagesToScan.length > 1
+          ? 'Voor- en achteretiket succesvol gecombineerd!'
+          : 'Wijn succesvol herkend!'
+      );
     } catch (err: any) {
-      console.warn('AI scan failed, falling back:', err);
+      console.warn('AI scan failed:', err);
       setScanError(err.message || 'Automatische herkenning mislukt. Vul de gegevens handmatig in.');
     } finally {
       setIsScanning(false);
@@ -312,120 +359,244 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="overflow-y-auto p-4 sm:p-6 space-y-5 flex-1">
-          {/* Photo & AI Scan Section with Camera vs Gallery choice */}
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-950/40 via-stone-850 to-stone-900 border border-rose-900/40 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Photo & AI Scan Section with Front & Back label support */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-950/40 via-stone-850 to-stone-900 border border-rose-900/40 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <h3 className="text-sm font-bold text-rose-300 flex items-center gap-2">
                   <Camera className="w-4 h-4" />
-                  <span>Foto van wijnetiket scannen</span>
+                  <span>Foto van etiket scannen (AI)</span>
                 </h3>
                 <p className="text-xs text-stone-400">
-                  Herkent automatisch jaartal, druif, Vivino-score en bewaaradvies
+                  Scan vooretiket en optioneel het achteretiket voor maximale nauwkeurigheid
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Direct Camera Button */}
+              {(frontPhoto || backPhoto) && (
                 <button
                   type="button"
-                  onClick={() => cameraInputRef.current?.click()}
-                  disabled={isScanning}
-                  className="px-3 py-1.5 rounded-xl bg-rose-800 hover:bg-rose-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-rose-950/40 transition cursor-pointer"
-                  title="Direct foto maken met camera op je telefoon"
+                  onClick={() => {
+                    setFrontPhoto(null);
+                    setBackPhoto(null);
+                    setScanError('');
+                    setScanMessage('');
+                  }}
+                  className="self-start sm:self-auto px-2.5 py-1 rounded-lg bg-stone-800 hover:bg-rose-900/60 text-stone-300 hover:text-rose-200 border border-stone-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                  title="Alle foto's wissen"
                 >
-                  {isScanning ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Camera className="w-3.5 h-3.5 text-rose-200" />
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Foto's wissen</span>
+                </button>
+              )}
+            </div>
+
+            {/* Hidden Inputs for Front Label */}
+            <input
+              type="file"
+              ref={frontCameraInputRef}
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={e => e.target.files?.[0] && processAndScanPhotos('front', e.target.files[0])}
+            />
+            <input
+              type="file"
+              ref={frontGalleryInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={e => e.target.files?.[0] && processAndScanPhotos('front', e.target.files[0])}
+            />
+
+            {/* Hidden Inputs for Back Label */}
+            <input
+              type="file"
+              ref={backCameraInputRef}
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={e => e.target.files?.[0] && processAndScanPhotos('back', e.target.files[0])}
+            />
+            <input
+              type="file"
+              ref={backGalleryInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={e => e.target.files?.[0] && processAndScanPhotos('back', e.target.files[0])}
+            />
+
+            {/* Dual Photo Slots Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Slot 1: Front Label */}
+              <div className="p-3 rounded-xl bg-stone-900/90 border border-stone-800 flex flex-col justify-between gap-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold text-stone-200 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                    <span>1. Vooretiket (Hoofd)</span>
+                  </div>
+                  {frontPhoto && (
+                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Gekoppeld
+                    </span>
                   )}
-                  <span>Camera</span>
-                </button>
+                </div>
 
-                {/* Gallery Button */}
-                <button
-                  type="button"
-                  onClick={() => galleryInputRef.current?.click()}
-                  disabled={isScanning}
-                  className="px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-750 border border-stone-700 text-stone-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
-                  title="Kies een bestaande foto uit je bibliotheek"
-                >
-                  <ImageIcon className="w-3.5 h-3.5 text-stone-400" />
-                  <span>Galerij</span>
-                </button>
+                {frontPhoto ? (
+                  <div className="flex items-center gap-2.5">
+                    <img
+                      src={frontPhoto.base64}
+                      alt="Vooretiket preview"
+                      className="w-14 h-16 object-cover rounded-lg border border-stone-700 shadow-sm"
+                    />
+                    <div className="flex flex-col gap-1.5 flex-1">
+                      <span className="text-[11px] text-stone-300 truncate">Voorkant geladen</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => frontCameraInputRef.current?.click()}
+                          disabled={isScanning}
+                          className="px-2 py-1 rounded-md bg-stone-800 hover:bg-stone-700 text-stone-300 text-[11px] border border-stone-700 cursor-pointer"
+                        >
+                          Opnieuw
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFrontPhoto(null);
+                            if (backPhoto) executeAiScan(null, backPhoto);
+                          }}
+                          className="p-1 rounded-md bg-stone-800 hover:bg-rose-950 text-stone-400 hover:text-rose-300 border border-stone-700 cursor-pointer"
+                          title="Voorkant verwijderen"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => frontCameraInputRef.current?.click()}
+                      disabled={isScanning}
+                      className="flex-1 py-2 px-2.5 rounded-xl bg-rose-800 hover:bg-rose-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-md shadow-rose-950/40 transition cursor-pointer"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-rose-200" />
+                      <span>Camera</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => frontGalleryInputRef.current?.click()}
+                      disabled={isScanning}
+                      className="flex-1 py-2 px-2.5 rounded-xl bg-stone-800 hover:bg-stone-750 border border-stone-700 text-stone-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5 text-stone-400" />
+                      <span>Galerij</span>
+                    </button>
+                  </div>
+                )}
+              </div>
 
-                {photoPreview && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPhotoPreview('');
-                      setScanError('');
-                      setScanMessage('');
-                    }}
-                    className="p-1.5 rounded-xl bg-stone-800 hover:bg-rose-900/60 text-stone-400 hover:text-rose-300 border border-stone-700 transition cursor-pointer"
-                    title="Foto verwijderen"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+              {/* Slot 2: Back Label */}
+              <div className="p-3 rounded-xl bg-stone-900/90 border border-stone-800 flex flex-col justify-between gap-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold text-stone-200 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span>2. Achteretiket (Optioneel)</span>
+                  </div>
+                  {backPhoto && (
+                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Gekoppeld
+                    </span>
+                  )}
+                </div>
+
+                {backPhoto ? (
+                  <div className="flex items-center gap-2.5">
+                    <img
+                      src={backPhoto.base64}
+                      alt="Achteretiket preview"
+                      className="w-14 h-16 object-cover rounded-lg border border-stone-700 shadow-sm"
+                    />
+                    <div className="flex flex-col gap-1.5 flex-1">
+                      <span className="text-[11px] text-stone-300 truncate">Achterkant geladen</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => backCameraInputRef.current?.click()}
+                          disabled={isScanning}
+                          className="px-2 py-1 rounded-md bg-stone-800 hover:bg-stone-700 text-stone-300 text-[11px] border border-stone-700 cursor-pointer"
+                        >
+                          Opnieuw
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBackPhoto(null);
+                            if (frontPhoto) executeAiScan(frontPhoto, null);
+                          }}
+                          className="p-1 rounded-md bg-stone-800 hover:bg-rose-950 text-stone-400 hover:text-rose-300 border border-stone-700 cursor-pointer"
+                          title="Achterkant verwijderen"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => backCameraInputRef.current?.click()}
+                      disabled={isScanning}
+                      className="flex-1 py-2 px-2.5 rounded-xl bg-stone-800 hover:bg-stone-750 border border-stone-700 text-stone-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-stone-400" />
+                      <span>Camera</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => backGalleryInputRef.current?.click()}
+                      disabled={isScanning}
+                      className="flex-1 py-2 px-2.5 rounded-xl bg-stone-800 hover:bg-stone-750 border border-stone-700 text-stone-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5 text-stone-400" />
+                      <span>Galerij</span>
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* Hidden Input for Direct Camera capture */}
-            <input
-              type="file"
-              ref={cameraInputRef}
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={handlePhotoSelect}
-            />
-
-            {/* Hidden Input for Photo Library / Gallery */}
-            <input
-              type="file"
-              ref={galleryInputRef}
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhotoSelect}
-            />
-
-            {photoPreview && (
-              <div className="flex items-center gap-3 pt-2">
-                <img
-                  src={photoPreview}
-                  alt="Etiket preview"
-                  className="w-16 h-20 object-cover rounded-xl border border-stone-700 shadow-md"
-                />
-                <div className="text-xs">
-                  {isScanning && (
-                    <div className="flex items-center gap-2 text-rose-300 font-medium">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>{scanMessage}</span>
+            {/* Scan Status & Feedback Bar */}
+            {(isScanning || scanError || scanMessage || (frontPhoto || backPhoto)) && (
+              <div className="text-xs pt-1">
+                {isScanning && (
+                  <div className="flex items-center gap-2 text-rose-300 font-medium bg-rose-950/40 p-2.5 rounded-xl border border-rose-900/50">
+                    <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                    <span>{scanMessage}</span>
+                  </div>
+                )}
+                {scanError && (
+                  <div className="flex items-center gap-2 text-amber-300 font-medium bg-amber-950/40 p-2.5 rounded-xl border border-amber-900/50">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+                    <span>{scanError}</span>
+                  </div>
+                )}
+                {!isScanning && !scanError && (frontPhoto || backPhoto) && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-emerald-400 font-medium bg-emerald-950/30 p-2.5 rounded-xl border border-emerald-900/40">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      <span>{scanMessage || 'Etiket succesvol herkend & ingevuld!'}</span>
                     </div>
-                  )}
-                  {scanError && (
-                    <div className="flex items-center gap-1.5 text-amber-400 font-medium">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      <span>{scanError}</span>
-                    </div>
-                  )}
-                  {!isScanning && !scanError && (
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
-                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                        <span>Etiket succesvol herkend & ingevuld!</span>
+                    {formData.klimaatAdvies && (
+                      <div className="text-[11px] text-stone-300 flex items-center gap-1.5 bg-stone-900/90 px-2.5 py-1.5 rounded-lg border border-stone-800">
+                        <span className="font-bold text-amber-300">Advies: {formData.klimaatAdvies}</span>
+                        <span>·</span>
+                        <span className="truncate">{formData.klimaatReden || 'Bewaarbehoefte berekend'}</span>
                       </div>
-                      {formData.klimaatAdvies && (
-                        <div className="text-[11px] text-stone-300 flex items-center gap-1.5 bg-stone-900/90 px-2.5 py-1 rounded-lg border border-stone-800">
-                          <span className="font-bold text-amber-300">Advies: {formData.klimaatAdvies}</span>
-                          <span>·</span>
-                          <span className="truncate">{formData.klimaatReden || 'Bewaarbehoefte berekend'}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
