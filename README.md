@@ -11,6 +11,7 @@ Een moderne, intuïtieve webapplicatie voor wijnliefhebbers om hun complete wijn
 ### 1. 🤖 AI Sommelier & Etiketscanner
 - **Directe Camera-integratie:** Maak direct een foto van een wijnetiket met de camera op je smartphone of kies een foto uit je fotobibliotheek.
 - **Automatische herkenning:** Analyseert wijnhuis, druivenras, oogstjaar, Vivino-score en stelt automatisch een bewaartermijn en serveertemperatuur in.
+- **Slimme Duplicaatdetectie:** Herkent direct of je een gescande of ingevoerde wijn al in je kelder hebt liggen en biedt met 1 klik aan om de voorraad op te hogen i.p.v. een dubbele kaart aan te maken.
 
 ### 2. 🎲 Sommelier Keuzehulp — *"Wat drinken we vanavond?"*
 - Vind binnen enkele seconden de perfecte fles op basis van:

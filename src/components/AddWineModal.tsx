@@ -55,9 +55,59 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
   });
 
   const [selectedSwapCandidate, setSelectedSwapCandidate] = useState<SwapCandidate | null>(null);
+  const [ignoreDuplicateWarning, setIgnoreDuplicateWarning] = useState<boolean>(false);
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  // Smart check: Does this wine already exist in user's cellar?
+  const matchingExistingWine = React.useMemo(() => {
+    if (ignoreDuplicateWarning) return null;
+    const nameStr = (formData.naam || '').trim().toLowerCase();
+    if (nameStr.length < 3) return null;
+
+    const targetYear = formData.jaar ? String(formData.jaar).trim() : '';
+
+    return wines.find(w => {
+      const wName = (w.naam || '').trim().toLowerCase();
+      const wHouse = (w.wijnhuis || '').trim().toLowerCase();
+      const wYear = w.jaar ? String(w.jaar).trim() : '';
+
+      // If both specify a year, they must match
+      if (targetYear && wYear && targetYear !== wYear) return false;
+
+      // Exact match or substring match
+      const nameMatch = wName === nameStr || 
+        wName.includes(nameStr) || 
+        nameStr.includes(wName) ||
+        (wHouse && nameStr.includes(wHouse));
+
+      return nameMatch;
+    });
+  }, [formData.naam, formData.jaar, wines, ignoreDuplicateWarning]);
+
+  const handleIncrementExisting = () => {
+    if (!matchingExistingWine || !onUpdateWine) return;
+    const addQty = Number(formData.aantal) || 1;
+    const currentQty = Number(matchingExistingWine.aantal) || 0;
+    const newTotal = currentQty + addQty;
+
+    const updated: Wine = {
+      ...matchingExistingWine,
+      aantal: newTotal,
+      activity: [
+        ...(matchingExistingWine.activity || []),
+        {
+          date: new Date().toISOString().slice(0, 10),
+          action: `Voorraad verhoogd met +${addQty} fles(sen) (totaal ${newTotal})`,
+          change: addQty
+        }
+      ]
+    };
+
+    onUpdateWine(updated);
+    onClose();
+  };
 
   // Count active bottles in cabinet
   const inCabinetCount = wines
@@ -357,6 +407,52 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
               </div>
             )}
           </div>
+
+          {/* Smart Duplicate / Existing Wine Recognition Banner */}
+          {matchingExistingWine && (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/70 via-stone-850 to-stone-900 border border-purple-800/80 shadow-lg space-y-3 animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">💡</span>
+                  <h4 className="text-xs sm:text-sm font-bold text-purple-200">
+                    Bestaande wijn herkend in je kelder!
+                  </h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIgnoreDuplicateWarning(true)}
+                  className="text-[11px] text-stone-400 hover:text-stone-200 underline cursor-pointer"
+                >
+                  Negeren
+                </button>
+              </div>
+
+              <p className="text-xs text-stone-300 leading-relaxed">
+                Je hebt <strong className="text-purple-300">{matchingExistingWine.naam}</strong> {matchingExistingWine.jaar ? `(${matchingExistingWine.jaar})` : ''} al geregistreerd:
+                <br />
+                📍 <strong>{matchingExistingWine.aantal} fles(sen)</strong> op <strong>{matchingExistingWine.plank ? `Plank ${matchingExistingWine.plank}` : matchingExistingWine.opslag}</strong>.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleIncrementExisting}
+                  className="flex-1 px-3.5 py-2 rounded-xl bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-purple-950/50 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Voorraad verhogen (+{formData.aantal || 1} fles)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIgnoreDuplicateWarning(true)}
+                  className="px-3 py-2 rounded-xl bg-stone-800 hover:bg-stone-750 text-stone-300 border border-stone-700 text-xs font-semibold transition cursor-pointer"
+                >
+                  Als aparte fles invoeren
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Sommelier Space Swap Suggestion Banner if cabinet is full and wine has aging potential */}
           {isCabinetFull && (isAgingWine || formData.plank !== '') && (
