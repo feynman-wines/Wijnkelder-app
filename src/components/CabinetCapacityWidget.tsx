@@ -157,35 +157,10 @@ export const CabinetCapacityWidget: React.FC<CabinetCapacityWidgetProps> = ({
               title="Kastcapaciteit wijzigen"
             >
               <Settings2 className="w-3.5 h-3.5" />
-              <span className="text-[11px] hidden sm:inline">Capaciteit instellen</span>
+              <span className="text-[11px] hidden sm:inline">Capaciteit instellen (88 plekken)</span>
             </button>
           )}
         </div>
-      </div>
-
-      {/* Quick Presets */}
-      <div className="flex items-center gap-2 text-xs">
-        <span className="text-stone-400 text-[11px]">Snelkeuze:</span>
-        <button
-          onClick={() => onUpdateCapacity(88)}
-          className={`px-2 py-0.5 rounded-md border text-[11px] font-medium transition cursor-pointer ${
-            capacity === 88
-              ? 'bg-rose-900/60 text-rose-200 border-rose-700'
-              : 'bg-stone-850 text-stone-400 border-stone-800 hover:text-stone-200'
-          }`}
-        >
-          88 plekken (exact vol)
-        </button>
-        <button
-          onClick={() => onUpdateCapacity(109)}
-          className={`px-2 py-0.5 rounded-md border text-[11px] font-medium transition cursor-pointer ${
-            capacity === 109
-              ? 'bg-rose-900/60 text-rose-200 border-rose-700'
-              : 'bg-stone-850 text-stone-400 border-stone-800 hover:text-stone-200'
-          }`}
-        >
-          109 plekken (21 vrij)
-        </button>
       </div>
 
       {/* Segmented Capacity Bar */}

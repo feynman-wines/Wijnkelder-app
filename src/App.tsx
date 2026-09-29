@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Calendar, Layers, Utensils, Archive, Wine as WineIcon } from 'lucide-react';
+import { LayoutDashboard, Calendar, Layers, Utensils, Archive, BarChart3, Wine as WineIcon } from 'lucide-react';
 import { Wine, WineNote } from './types/wine';
 import { INITIAL_WINES } from './data/initialWines';
 import { Header } from './components/Header';
@@ -7,6 +7,7 @@ import { OverviewView } from './components/views/OverviewView';
 import { WineCalendarView } from './components/views/WineCalendarView';
 import { StockView } from './components/views/StockView';
 import { DrinkAdviceView } from './components/views/DrinkAdviceView';
+import { StatsView } from './components/views/StatsView';
 import { ArchiveView } from './components/views/ArchiveView';
 import { WineDetailModal } from './components/WineDetailModal';
 import { AddWineModal } from './components/AddWineModal';
@@ -34,7 +35,7 @@ export default function App() {
     return INITIAL_WINES;
   });
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'calendar' | 'stock' | 'advice' | 'archive'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'calendar' | 'stock' | 'stats' | 'advice' | 'archive'>('overview');
   const [selectedWine, setSelectedWine] = useState<Wine | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isTonightModalOpen, setIsTonightModalOpen] = useState(false);
@@ -289,7 +290,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col font-sans selection:bg-rose-900 selection:text-white pb-20 sm:pb-8">
+    <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col font-sans selection:bg-rose-900 selection:text-white pb-24 md:pb-8">
       {/* Top Header */}
       <Header
         wines={wines}
@@ -302,9 +303,9 @@ export default function App() {
         onOpenTonightSommelier={() => setIsTonightModalOpen(true)}
       />
 
-      {/* Main Tab Navigation */}
-      <nav className="bg-stone-900/80 border-b border-stone-800 sticky top-14 z-20 backdrop-blur">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between sm:justify-start gap-1 sm:gap-4 overflow-x-auto py-2 no-scrollbar">
+      {/* Desktop/Tablet Top Tab Navigation (hidden on mobile) */}
+      <nav className="hidden md:block bg-stone-900/80 border-b border-stone-800 sticky top-14 z-20 backdrop-blur">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-start gap-3 py-2">
           <button
             onClick={() => setActiveTab('overview')}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
@@ -315,18 +316,6 @@ export default function App() {
           >
             <LayoutDashboard className="w-4 h-4" />
             <span>Overzicht</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('calendar')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
-              activeTab === 'calendar'
-                ? 'bg-rose-900 text-white shadow-sm'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-850'
-            }`}
-          >
-            <Calendar className="w-4 h-4" />
-            <span>Wijnkalender</span>
           </button>
 
           <button
@@ -354,6 +343,30 @@ export default function App() {
           </button>
 
           <button
+            onClick={() => setActiveTab('calendar')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
+              activeTab === 'calendar'
+                ? 'bg-rose-900 text-white shadow-sm'
+                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-850'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            <span>Wijnkalender</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('stats')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
+              activeTab === 'stats'
+                ? 'bg-rose-900 text-white shadow-sm'
+                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-850'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span>Statistieken</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('archive')}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
               activeTab === 'archive'
@@ -368,7 +381,7 @@ export default function App() {
       </nav>
 
       {/* Main Content View */}
-      <main className="flex-1">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
         {activeTab === 'overview' && (
           <OverviewView
             wines={wines}
@@ -380,6 +393,7 @@ export default function App() {
             onUpdateWine={handleUpdateWine}
             onNavigateToCalendar={() => setActiveTab('calendar')}
             onNavigateToAdvice={() => setActiveTab('advice')}
+            onNavigateToStats={() => setActiveTab('stats')}
             onOpenTonightSommelier={() => setIsTonightModalOpen(true)}
           />
         )}
@@ -400,6 +414,13 @@ export default function App() {
             onDrinkOne={handleDrinkOne}
             onToggleFavorite={handleToggleFavorite}
             onAddClick={() => setIsAddModalOpen(true)}
+          />
+        )}
+
+        {activeTab === 'stats' && (
+          <StatsView
+            wines={wines}
+            onSelectWine={setSelectedWine}
           />
         )}
 
@@ -476,9 +497,84 @@ export default function App() {
         onDrinkOne={handleDrinkOne}
       />
 
+      {/* Fixed Mobile Bottom Navigation Bar (Visible only on mobile screens) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-stone-900/95 backdrop-blur-lg border-t border-stone-800 px-1.5 py-1.5 shadow-2xl flex items-center justify-around">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition cursor-pointer ${
+            activeTab === 'overview'
+              ? 'text-rose-400 bg-rose-950/50'
+              : 'text-stone-400 hover:text-stone-200'
+          }`}
+        >
+          <LayoutDashboard className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] font-bold tracking-tight">Overzicht</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('stock')}
+          className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition cursor-pointer ${
+            activeTab === 'stock'
+              ? 'text-rose-400 bg-rose-950/50'
+              : 'text-stone-400 hover:text-stone-200'
+          }`}
+        >
+          <Layers className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] font-bold tracking-tight">Voorraad</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('advice')}
+          className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition cursor-pointer ${
+            activeTab === 'advice'
+              ? 'text-rose-400 bg-rose-950/50'
+              : 'text-stone-400 hover:text-stone-200'
+          }`}
+        >
+          <Utensils className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] font-bold tracking-tight">Advies</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('calendar')}
+          className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition cursor-pointer ${
+            activeTab === 'calendar'
+              ? 'text-rose-400 bg-rose-950/50'
+              : 'text-stone-400 hover:text-stone-200'
+          }`}
+        >
+          <Calendar className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] font-bold tracking-tight">Kalender</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('stats')}
+          className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition cursor-pointer ${
+            activeTab === 'stats'
+              ? 'text-rose-400 bg-rose-950/50'
+              : 'text-stone-400 hover:text-stone-200'
+          }`}
+        >
+          <BarChart3 className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] font-bold tracking-tight">Stats</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('archive')}
+          className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition cursor-pointer ${
+            activeTab === 'archive'
+              ? 'text-rose-400 bg-rose-950/50'
+              : 'text-stone-400 hover:text-stone-200'
+          }`}
+        >
+          <Archive className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] font-bold tracking-tight">Archief</span>
+        </button>
+      </nav>
+
       {/* Toast notifications */}
       {toastMessage && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl bg-stone-900 border border-stone-700 text-stone-100 text-xs sm:text-sm font-semibold shadow-2xl shadow-black/80 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl bg-stone-900 border border-stone-700 text-stone-100 text-xs sm:text-sm font-semibold shadow-2xl shadow-black/80 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
           <span>🍷</span>
           <span>{toastMessage}</span>
         </div>

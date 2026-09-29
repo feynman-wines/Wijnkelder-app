@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Camera, Sparkles, Loader2, CheckCircle2, AlertCircle, ArrowRightLeft, Layers } from 'lucide-react';
+import { X, Camera, Image as ImageIcon, Sparkles, Loader2, CheckCircle2, AlertCircle, ArrowRightLeft, Layers, Trash2 } from 'lucide-react';
 import { Wine, KlimaatAdvies } from '../types/wine';
 import { evaluateKlimaatAdvies } from '../utils/klimaatAdvies';
 import { getCabinetSwapCandidates, SwapCandidate } from '../utils/swapSuggestions';
@@ -56,7 +56,8 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
 
   const [selectedSwapCandidate, setSelectedSwapCandidate] = useState<SwapCandidate | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   // Count active bottles in cabinet
   const inCabinetCount = wines
@@ -248,9 +249,9 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="overflow-y-auto p-4 sm:p-6 space-y-5 flex-1">
-          {/* Photo & AI Scan Section */}
+          {/* Photo & AI Scan Section with Camera vs Gallery choice */}
           <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-950/40 via-stone-850 to-stone-900 border border-rose-900/40 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm font-bold text-rose-300 flex items-center gap-2">
                   <Camera className="w-4 h-4" />
@@ -261,24 +262,66 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isScanning}
-                className="px-3.5 py-1.5 rounded-xl bg-rose-800 hover:bg-rose-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-rose-950/40 transition cursor-pointer"
-              >
-                {isScanning ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4 text-amber-300" />
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Direct Camera Button */}
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={isScanning}
+                  className="px-3 py-1.5 rounded-xl bg-rose-800 hover:bg-rose-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-rose-950/40 transition cursor-pointer"
+                  title="Direct foto maken met camera op je telefoon"
+                >
+                  {isScanning ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Camera className="w-3.5 h-3.5 text-rose-200" />
+                  )}
+                  <span>Camera</span>
+                </button>
+
+                {/* Gallery Button */}
+                <button
+                  type="button"
+                  onClick={() => galleryInputRef.current?.click()}
+                  disabled={isScanning}
+                  className="px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-750 border border-stone-700 text-stone-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                  title="Kies een bestaande foto uit je bibliotheek"
+                >
+                  <ImageIcon className="w-3.5 h-3.5 text-stone-400" />
+                  <span>Galerij</span>
+                </button>
+
+                {photoPreview && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhotoPreview('');
+                      setScanError('');
+                      setScanMessage('');
+                    }}
+                    className="p-1.5 rounded-xl bg-stone-800 hover:bg-rose-900/60 text-stone-400 hover:text-rose-300 border border-stone-700 transition cursor-pointer"
+                    title="Foto verwijderen"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 )}
-                <span>{photoPreview ? 'Andere foto' : 'Kies of maak foto'}</span>
-              </button>
+              </div>
             </div>
 
+            {/* Hidden Input for Direct Camera capture */}
             <input
               type="file"
-              ref={fileInputRef}
+              ref={cameraInputRef}
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handlePhotoSelect}
+            />
+
+            {/* Hidden Input for Photo Library / Gallery */}
+            <input
+              type="file"
+              ref={galleryInputRef}
               accept="image/*"
               className="hidden"
               onChange={handlePhotoSelect}
@@ -289,7 +332,7 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
                 <img
                   src={photoPreview}
                   alt="Etiket preview"
-                  className="w-16 h-20 object-cover rounded-xl border border-stone-700"
+                  className="w-16 h-20 object-cover rounded-xl border border-stone-700 shadow-md"
                 />
                 <div className="text-xs">
                   {isScanning && (

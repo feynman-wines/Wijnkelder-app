@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Star, MapPin, Calendar, Thermometer, Utensils, Award, Edit3, Trash2, Plus, Sparkles, AlertCircle, Info, Camera, RotateCcw } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { X, Star, MapPin, Calendar, Thermometer, Utensils, Award, Edit3, Trash2, Plus, Sparkles, AlertCircle, Info, Camera, Image as ImageIcon, RotateCcw } from 'lucide-react';
 import { Wine, WineNote, KlimaatAdvies } from '../types/wine';
 import { getWineDrinkStatus } from '../utils/drinkStatus';
 import { getKlimaatAdviesInfo } from '../utils/klimaatAdvies';
@@ -37,6 +37,9 @@ export const WineDetailModal: React.FC<WineDetailModalProps> = ({
   const drinkStatus = getWineDrinkStatus(wine);
   const klimaatInfo = getKlimaatAdviesInfo(wine.klimaatAdvies);
 
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     onUpdateWine(formData);
@@ -57,6 +60,11 @@ export const WineDetailModal: React.FC<WineDetailModalProps> = ({
       onUpdateWine({ ...wine, photo: result });
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setFormData(prev => ({ ...prev, photo: undefined }));
+    onUpdateWine({ ...wine, photo: undefined });
   };
 
   return (
@@ -388,22 +396,83 @@ export const WineDetailModal: React.FC<WineDetailModalProps> = ({
 
               {/* Photo & Key Metrics */}
               <div className="flex flex-col sm:flex-row gap-4 items-start">
-                {wine.photo ? (
-                  <div className="relative w-full sm:w-44 h-48 sm:h-52 rounded-2xl overflow-hidden bg-stone-850 shrink-0 border border-stone-800 group">
-                    <img src={wine.photo} alt={wine.naam} className="w-full h-full object-cover" />
-                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-xs cursor-pointer transition">
-                      <Camera className="w-5 h-5 mb-1" />
-                      <span>Foto wijzigen</span>
-                      <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-                    </label>
-                  </div>
-                ) : (
-                  <label className="w-full sm:w-44 h-32 sm:h-52 rounded-2xl border-2 border-dashed border-stone-800 hover:border-stone-700 bg-stone-850/50 flex flex-col items-center justify-center text-stone-500 hover:text-stone-300 transition cursor-pointer shrink-0">
-                    <Camera className="w-6 h-6 mb-1 text-rose-500/70" />
-                    <span className="text-xs font-medium">Voeg etiketfoto toe</span>
-                    <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-                  </label>
-                )}
+                <div className="w-full sm:w-48 shrink-0 space-y-2">
+                  {wine.photo ? (
+                    <div className="relative w-full h-48 sm:h-56 rounded-2xl overflow-hidden bg-stone-850 border border-stone-800 group shadow-lg">
+                      <img src={wine.photo} alt={wine.naam} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 flex items-end p-2.5 transition">
+                        <div className="flex items-center gap-1.5 w-full">
+                          <button
+                            type="button"
+                            onClick={() => cameraInputRef.current?.click()}
+                            className="flex-1 py-1.5 rounded-lg bg-rose-800 hover:bg-rose-700 text-white text-[11px] font-semibold flex items-center justify-center gap-1 transition"
+                            title="Maak nieuwe foto met camera"
+                          >
+                            <Camera className="w-3 h-3" />
+                            <span>Camera</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => galleryInputRef.current?.click()}
+                            className="flex-1 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-[11px] font-semibold flex items-center justify-center gap-1 transition"
+                            title="Kies uit galerij"
+                          >
+                            <ImageIcon className="w-3 h-3" />
+                            <span>Galerij</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleRemovePhoto}
+                            className="p-1.5 rounded-lg bg-stone-900/80 hover:bg-rose-950 text-stone-400 hover:text-rose-400 transition"
+                            title="Verwijder foto"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-36 sm:h-48 rounded-2xl border-2 border-dashed border-stone-800 bg-stone-850/50 flex flex-col items-center justify-center p-3 text-stone-400 space-y-2">
+                      <Camera className="w-6 h-6 text-rose-500/70" />
+                      <span className="text-xs font-medium text-stone-300 text-center">Etiket toevoegen</span>
+                      <div className="flex items-center gap-1.5 w-full pt-1">
+                        <button
+                          type="button"
+                          onClick={() => cameraInputRef.current?.click()}
+                          className="flex-1 py-1.5 rounded-lg bg-rose-800 hover:bg-rose-700 text-white text-[11px] font-semibold flex items-center justify-center gap-1 shadow-md shadow-rose-950/40 transition cursor-pointer"
+                        >
+                          <Camera className="w-3 h-3" />
+                          <span>Camera</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => galleryInputRef.current?.click()}
+                          className="flex-1 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-750 text-stone-200 text-[11px] font-semibold flex items-center justify-center gap-1 border border-stone-700 transition cursor-pointer"
+                        >
+                          <ImageIcon className="w-3 h-3" />
+                          <span>Galerij</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hidden file inputs for Camera and Gallery */}
+                  <input
+                    type="file"
+                    ref={cameraInputRef}
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                  <input
+                    type="file"
+                    ref={galleryInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                </div>
 
                 <div className="flex-1 space-y-3 w-full">
                   <div>

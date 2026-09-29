@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, AlertTriangle, ArrowRight, TrendingUp, Layers, MapPin, Calendar, ShieldCheck, Dice5, Eye, EyeOff } from 'lucide-react';
+import { Sparkles, AlertTriangle, ArrowRight, TrendingUp, Layers, MapPin, Calendar, ShieldCheck, Dice5, Eye, EyeOff, BarChart3 } from 'lucide-react';
 import { Wine } from '../../types/wine';
 import { isNuInteressant, getWineDrinkStatus } from '../../utils/drinkStatus';
 import { WineCard } from '../WineCard';
@@ -15,6 +15,7 @@ interface OverviewViewProps {
   onUpdateWine?: (wine: Wine) => void;
   onNavigateToCalendar: () => void;
   onNavigateToAdvice: () => void;
+  onNavigateToStats?: () => void;
   onOpenTonightSommelier: () => void;
 }
 
@@ -36,6 +37,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   onUpdateWine,
   onNavigateToCalendar,
   onNavigateToAdvice,
+  onNavigateToStats,
   onOpenTonightSommelier
 }) => {
   const [showValue, setShowValue] = useState(false);
@@ -100,31 +102,40 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         </button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="p-4 rounded-2xl bg-stone-900 border border-stone-800 shadow-sm">
+      {/* KPI Action Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <div className="p-4 rounded-2xl bg-stone-900 border border-stone-800 shadow-sm flex flex-col justify-between">
           <div className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-1">
-            Flessen
+            Totale Voorraad
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-stone-100 font-mono">
-            {totalBottles}
+            {totalBottles} <span className="text-base font-normal text-stone-400">flessen</span>
           </div>
-          <p className="text-xs text-stone-400 mt-1">{activeWines.length} verschillende wijnen</p>
+          <p className="text-xs text-stone-400 mt-1">{activeWines.length} unieke wijnen geregistreerd</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-stone-900 border border-stone-800 shadow-sm">
-          <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1">
-            Nu op dronk
+        <div
+          onClick={onNavigateToAdvice}
+          className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-800/60 shadow-sm cursor-pointer hover:border-emerald-600 transition flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1">
+              Nu op dronk
+            </div>
+            <span className="text-xs text-emerald-400">🍇 Piek</span>
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-emerald-300 font-mono">
-            {peakWines.length}
+            {peakWines.length} <span className="text-base font-normal text-emerald-400/80">flessen</span>
           </div>
-          <p className="text-xs text-stone-400 mt-1">Op smaakhoogtepunt</p>
+          <p className="text-xs text-emerald-200/80 mt-1 flex items-center gap-1">
+            <span>Direct drinkklaar & op smaak</span>
+            <ArrowRight className="w-3 h-3" />
+          </p>
         </div>
 
         <div
           onClick={onNavigateToCalendar}
-          className="p-4 rounded-2xl bg-amber-950/40 border border-amber-800/60 shadow-sm cursor-pointer hover:border-amber-600 transition"
+          className="p-4 rounded-2xl bg-amber-950/40 border border-amber-800/60 shadow-sm cursor-pointer hover:border-amber-600 transition flex flex-col justify-between"
         >
           <div className="flex items-center justify-between">
             <div className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-1">
@@ -133,41 +144,12 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <AlertTriangle className="w-4 h-4 text-amber-400" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-amber-300 font-mono">
-            {urgentWines.length}
+            {urgentWines.length} <span className="text-base font-normal text-amber-400/80">flessen</span>
           </div>
           <p className="text-xs text-amber-200/80 mt-1 flex items-center gap-1">
-            <span>Naderen einde venster</span>
+            <span>Naderen einde drinkperiode</span>
             <ArrowRight className="w-3 h-3" />
           </p>
-        </div>
-
-        {/* Discreet cellar value card with toggle */}
-        <div className="p-4 rounded-2xl bg-stone-900 border border-stone-800 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <div className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-1">
-              Kelderwaarde
-            </div>
-            <button
-              onClick={() => setShowValue(!showValue)}
-              className="text-stone-500 hover:text-stone-300 transition cursor-pointer p-0.5"
-              title={showValue ? 'Verberg bedrag' : 'Toon geschatte kelderwaarde'}
-            >
-              {showValue ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            </button>
-          </div>
-
-          <div>
-            {showValue ? (
-              <div className="text-xl sm:text-2xl font-extrabold text-stone-100 font-mono">
-                €{Math.round(totalValueRange[0])}–{Math.round(totalValueRange[1])}
-              </div>
-            ) : (
-              <div className="text-sm font-semibold text-stone-400 italic">
-                Tik oogje om te tonen
-              </div>
-            )}
-          </div>
-          <p className="text-[11px] text-stone-500 mt-1">Winkelwaarde indicatie</p>
         </div>
       </div>
 
