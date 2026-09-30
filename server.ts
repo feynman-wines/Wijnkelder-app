@@ -238,7 +238,7 @@ Geef een diepgaande maar compacte analyse:
     try {
       response = await callGeminiWithRetry(() =>
         ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.8-flash',
           contents: prompt,
           config: {
             systemInstruction: 'Je bent een meester-sommelier. Geef hoogwaardig, inspirerend en gastronomisch accuraat Nederlands wijn-spijsadvies.',
@@ -248,9 +248,9 @@ Geef een diepgaande maar compacte analyse:
         })
       );
     } catch (primaryErr: any) {
-      console.warn('Gemini 2.5 flash error, falling back to flash-lite:', primaryErr?.message);
+      console.warn('Gemini 3.8 flash error, falling back to gemini-3.5-flash-lite:', primaryErr?.message);
       response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-lite',
+        model: 'gemini-3.5-flash-lite',
         contents: prompt,
         config: {
           systemInstruction: 'Je bent een meester-sommelier. Geef hoogwaardig, inspirerend en gastronomisch accuraat Nederlands wijn-spijsadvies.',

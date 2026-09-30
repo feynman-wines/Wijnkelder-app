@@ -73,10 +73,7 @@ export const WineDetailModal: React.FC<WineDetailModalProps> = ({
       const localAnalysis = generateLocalWineGastronomy(wine);
       localAnalysis.isOfflineFallback = true;
       setAiSommelierResult(localAnalysis);
-      // Give a friendly explanation only if it was an auth error
-      if (err?.message && (err.message.includes('401') || err.message.includes('authentication') || err.message.includes('UNAUTHENTICATED'))) {
-        setAiSommelierError('Tip: Je GEMINI_API_KEY in Vercel lijkt niet actief of onvolledig gekopieerd. Lokale sommelier-analyse wordt nu getoond.');
-      }
+      setAiSommelierError(null);
     } finally {
       setAiSommelierLoading(false);
     }

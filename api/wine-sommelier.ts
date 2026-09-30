@@ -95,7 +95,7 @@ Geef een diepgaande maar compacte analyse:
     let response;
     try {
       response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.8-flash',
         contents: prompt,
         config: {
           systemInstruction: 'Je bent een meester-sommelier. Geef hoogwaardig, inspirerend en gastronomisch accuraat Nederlands wijn-spijsadvies.',
@@ -104,16 +104,29 @@ Geef een diepgaande maar compacte analyse:
         }
       });
     } catch (fallbackErr: any) {
-      console.warn('Gemini 2.5 flash error, falling back to flash-lite:', fallbackErr?.message);
-      response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-lite',
-        contents: prompt,
-        config: {
-          systemInstruction: 'Je bent een meester-sommelier. Geef hoogwaardig, inspirerend en gastronomisch accuraat Nederlands wijn-spijsadvies.',
-          responseMimeType: 'application/json',
-          responseSchema: schema
-        }
-      });
+      console.warn('Gemini 3.8 flash error, falling back to gemini-3.5-flash-lite:', fallbackErr?.message);
+      try {
+        response = await ai.models.generateContent({
+          model: 'gemini-3.5-flash-lite',
+          contents: prompt,
+          config: {
+            systemInstruction: 'Je bent een meester-sommelier. Geef hoogwaardig, inspirerend en gastronomisch accuraat Nederlands wijn-spijsadvies.',
+            responseMimeType: 'application/json',
+            responseSchema: schema
+          }
+        });
+      } catch (liteErr: any) {
+        console.warn('Gemini 3.5 flash lite error, trying gemini-flash-latest:', liteErr?.message);
+        response = await ai.models.generateContent({
+          model: 'gemini-flash-latest',
+          contents: prompt,
+          config: {
+            systemInstruction: 'Je bent een meester-sommelier. Geef hoogwaardig, inspirerend en gastronomisch accuraat Nederlands wijn-spijsadvies.',
+            responseMimeType: 'application/json',
+            responseSchema: schema
+          }
+        });
+      }
     }
 
     const result = JSON.parse(response.text || '{}');
