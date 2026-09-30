@@ -1,8 +1,6 @@
 {
-  "name": "Remix Remix Mijn Wijnkelder \u0026 Sommelier",
-  "description": "Slimme wijnkelderbeheerder met wijnkalender, drinkhorizon, klimaatkastadvies en AI sommelier.",
+  "name": "Wijnkelder - AI Sommelier & Beheer",
+  "description": "Slimme wijnkelderbeheerder met AI etikettenscanner, drinkadvies en kelderoverzicht.",
   "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

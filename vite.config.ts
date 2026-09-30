@@ -6,7 +6,6 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
-    base: './',
     plugins: [
       react(),
       tailwindcss(),
@@ -14,30 +13,29 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.png', 'apple-touch-icon.png', 'icon.svg'],
         manifest: {
-          id: './',
-          name: 'Mijn Wijnkelder & Sommelier',
+          name: 'Wijnkelder - AI Sommelier & Beheer',
           short_name: 'Wijnkelder',
-          description: 'Slimme wijnkelderbeheerder met wijnkalender, drinkhorizon, klimaatkastadvies en AI sommelier.',
+          description: 'Slimme wijnkelderbeheerder met AI etikettenscanner, drinkadvies en kelderoverzicht.',
           theme_color: '#1c1917',
           background_color: '#1c1917',
           display: 'standalone',
-          start_url: './',
-          scope: './',
+          start_url: '/',
+          scope: '/',
           icons: [
             {
-              src: 'pwa-192x192.png',
+              src: '/pwa-192x192.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: 'pwa-512x512.png',
+              src: '/pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: 'pwa-maskable-512x512.png',
+              src: '/pwa-maskable-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',
@@ -55,7 +53,7 @@ export default defineConfig(() => {
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve('.'),
       },
     },
     server: {
