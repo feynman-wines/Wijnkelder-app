@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { X, Star, MapPin, Calendar, Thermometer, Utensils, Award, Edit3, Trash2, Plus, Sparkles, AlertCircle, Info, Camera, Image as ImageIcon, RotateCcw } from 'lucide-react';
+import { X, Star, MapPin, Calendar, Thermometer, Utensils, Award, Edit3, Trash2, Plus, Sparkles, AlertCircle, Info, Camera, Image as ImageIcon, RotateCcw, Loader2, Check, AlertTriangle, ChevronRight } from 'lucide-react';
 import { Wine, WineNote, KlimaatAdvies } from '../types/wine';
 import { getWineDrinkStatus } from '../utils/drinkStatus';
 import { getKlimaatAdviesInfo } from '../utils/klimaatAdvies';
 import { KlimaatBadge } from './KlimaatBadge';
+import { callBackendApi } from '../utils/apiConfig';
 
 interface WineDetailModalProps {
   wine: Wine | null;
@@ -39,6 +40,67 @@ export const WineDetailModal: React.FC<WineDetailModalProps> = ({
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  // AI Sommelier state for this bottle
+  const [aiSommelierLoading, setAiSommelierLoading] = useState(false);
+  const [aiSommelierResult, setAiSommelierResult] = useState<{
+    smaakprofiel: string;
+    gerechten: Array<{ gang: string; gerecht: string; waarom: string }>;
+    serveeradvies: string;
+    afrader: string;
+  } | null>(null);
+  const [aiSommelierError, setAiSommelierError] = useState<string | null>(null);
+  const [isSavedToWine, setIsSavedToWine] = useState(false);
+
+  const handleFetchAiSommelier = async () => {
+    setAiSommelierLoading(true);
+    setAiSommelierError(null);
+    setIsSavedToWine(false);
+
+    try {
+      const res = await callBackendApi('/api/wine-sommelier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wine })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Kon AI sommelier niet raadplegen.');
+      }
+
+      const data = await res.json();
+      setAiSommelierResult(data);
+    } catch (err: any) {
+      console.error('AI Sommelier error:', err);
+      setAiSommelierError(err.message || 'Fout bij raadplegen AI sommelier. Probeer het over enkele ogenblikken opnieuw.');
+    } finally {
+      setAiSommelierLoading(false);
+    }
+  };
+
+  const handleSaveAiPairingsToWine = () => {
+    if (!aiSommelierResult) return;
+    const dishSummary = aiSommelierResult.gerechten
+      .map(g => `${g.gang}: ${g.gerecht}`)
+      .join(' · ');
+
+    const combinedEten = wine.eten
+      ? `${wine.eten} | Sommelier: ${dishSummary}`
+      : dishSummary;
+
+    const updatedWine = {
+      ...wine,
+      eten: combinedEten,
+      opmerkingen: wine.opmerkingen
+        ? `${wine.opmerkingen}\n\n[AI Sommelier Smaakprofiel]: ${aiSommelierResult.smaakprofiel}\n[Serveeradvies]: ${aiSommelierResult.serveeradvies}`
+        : `[AI Sommelier Smaakprofiel]: ${aiSommelierResult.smaakprofiel}\n[Serveeradvies]: ${aiSommelierResult.serveeradvies}`
+    };
+
+    onUpdateWine(updatedWine);
+    setFormData(updatedWine);
+    setIsSavedToWine(true);
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -601,16 +663,138 @@ export const WineDetailModal: React.FC<WineDetailModalProps> = ({
                 )}
               </div>
 
-              {/* Food & Notes section */}
-              {wine.eten && (
-                <div className="p-4 rounded-2xl bg-stone-850 border border-stone-800">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-rose-400 uppercase tracking-wider mb-1.5">
+              {/* Wine-Food Pairings & AI Sommelier Section */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-stone-850 to-stone-900 border border-stone-800 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-rose-400 uppercase tracking-wider">
                     <Utensils className="w-3.5 h-3.5" />
-                    <span>Wijn-Spijs Combinaties</span>
+                    <span>Wijn-Spijs & Gastronomie</span>
                   </div>
-                  <p className="text-sm text-stone-200 leading-relaxed">{wine.eten}</p>
+
+                  <button
+                    type="button"
+                    onClick={handleFetchAiSommelier}
+                    disabled={aiSommelierLoading}
+                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-800 to-rose-700 hover:from-rose-700 hover:to-rose-600 text-white font-semibold text-xs transition shadow-md shadow-rose-950/50 cursor-pointer disabled:opacity-50"
+                  >
+                    {aiSommelierLoading ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Sommelier raadplegen...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        <span>AI Sommelier Analyse</span>
+                      </>
+                    )}
+                  </button>
                 </div>
-              )}
+
+                {wine.eten ? (
+                  <div className="p-3 rounded-xl bg-stone-900/80 border border-stone-800 text-xs sm:text-sm text-stone-200 leading-relaxed">
+                    <span className="text-[11px] font-semibold text-stone-400 block mb-1">
+                      Huidig spijsadvies:
+                    </span>
+                    {wine.eten}
+                  </div>
+                ) : (
+                  <p className="text-xs text-stone-400 italic">
+                    Nog geen specifiek spijsadvies geregistreerd. Klik op "AI Sommelier Analyse" om direct meesterlijke wijn-spijs combinaties voor deze fles te ontdekken.
+                  </p>
+                )}
+
+                {/* AI Sommelier Loading State */}
+                {aiSommelierLoading && (
+                  <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-900/40 text-center space-y-2">
+                    <Loader2 className="w-5 h-5 animate-spin text-rose-400 mx-auto" />
+                    <p className="text-xs text-rose-200">
+                      De AI-sommelier bestudeert {wine.naam} {wine.jaar} (druif: {wine.druif || 'blend'}, streek: {wine.streek})...
+                    </p>
+                  </div>
+                )}
+
+                {/* AI Sommelier Error State */}
+                {aiSommelierError && (
+                  <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-800 text-xs text-rose-300 flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <span>{aiSommelierError}</span>
+                      <button
+                        type="button"
+                        onClick={handleFetchAiSommelier}
+                        className="text-[11px] underline font-semibold block text-rose-200 hover:text-white"
+                      >
+                        Opnieuw proberen
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Sommelier Result Card */}
+                {aiSommelierResult && (
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-950/20 via-stone-900 to-stone-900 border border-amber-800/40 space-y-3.5 mt-2 animate-fadeIn">
+                    <div className="flex items-center justify-between border-b border-amber-900/30 pb-2">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+                        <Sparkles className="w-4 h-4 text-amber-400" />
+                        <span>Gastronomisch Advies van de Sommelier</span>
+                      </div>
+                      
+                      {!isSavedToWine ? (
+                        <button
+                          type="button"
+                          onClick={handleSaveAiPairingsToWine}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 text-amber-300 text-[11px] font-semibold transition cursor-pointer border border-amber-900/50"
+                        >
+                          <span>Opslaan bij fles</span>
+                        </button>
+                      ) : (
+                        <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Opgeslagen!</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Smaakprofiel */}
+                    <div className="text-xs text-stone-200 leading-relaxed bg-stone-850/90 p-3 rounded-xl border border-stone-800">
+                      <strong className="text-amber-300 font-semibold block mb-0.5">Smaakprofiel:</strong>
+                      {aiSommelierResult.smaakprofiel}
+                    </div>
+
+                    {/* 3 Gerechten */}
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-rose-300 block">
+                        Aanbevolen Gerechten:
+                      </span>
+                      <div className="grid grid-cols-1 gap-2">
+                        {aiSommelierResult.gerechten.map((item, idx) => (
+                          <div key={idx} className="p-3 rounded-xl bg-stone-850 border border-stone-800 space-y-1">
+                            <div className="flex items-center justify-between text-xs font-bold">
+                              <span className="text-rose-300">{item.gang}</span>
+                              <span className="text-stone-100">{item.gerecht}</span>
+                            </div>
+                            <p className="text-xs text-stone-300 leading-relaxed">{item.waarom}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Serveeradvies & Afrader */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
+                      <div className="p-3 rounded-xl bg-stone-850/80 border border-stone-800 space-y-1">
+                        <span className="font-semibold text-stone-300 block">🌡️ Serveer- & Glasadvies:</span>
+                        <p className="text-stone-400">{aiSommelierResult.serveeradvies}</p>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-rose-950/30 border border-rose-900/30 space-y-1">
+                        <span className="font-semibold text-rose-300 block">⚠️ Niet combineren met:</span>
+                        <p className="text-stone-300">{aiSommelierResult.afrader}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {wine.opmerkingen && (
                 <div className="p-4 rounded-2xl bg-stone-850/60 border border-stone-800">

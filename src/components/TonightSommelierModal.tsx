@@ -164,19 +164,24 @@ export const TonightSommelierModal: React.FC<TonightSommelierModalProps> = ({
           </div>
         </div>
 
-        {/* Selected Wine Showcase Card */}
+        {/* Selected Wine Showcase Card (Entire card is clickable to open details) */}
         {pickedWine && (
           <div
-            className={`p-5 rounded-3xl bg-gradient-to-br from-stone-850 via-stone-900 to-stone-950 border border-rose-900/40 shadow-xl space-y-4 transition-all duration-300 ${
+            onClick={() => {
+              onSelectWine(pickedWine);
+              onClose();
+            }}
+            title="Klik om alle details van deze wijn te bekijken"
+            className={`group p-5 rounded-3xl bg-gradient-to-br from-stone-850 via-stone-900 to-stone-950 border border-rose-900/40 hover:border-rose-500/70 shadow-xl hover:shadow-rose-950/40 space-y-4 transition-all duration-300 cursor-pointer ${
               isSpinning ? 'opacity-30 scale-95' : 'opacity-100 scale-100'
             }`}
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-rose-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-rose-400 group-hover:text-rose-300 transition">
                   {pickedWine.wijnhuis || pickedWine.streek}
                 </span>
-                <h3 className="text-xl font-black text-stone-100 mt-0.5">
+                <h3 className="text-xl font-black text-stone-100 group-hover:text-rose-200 transition mt-0.5">
                   {pickedWine.naam}
                 </h3>
                 <p className="text-xs text-stone-400 mt-0.5">
@@ -185,7 +190,7 @@ export const TonightSommelierModal: React.FC<TonightSommelierModalProps> = ({
               </div>
 
               {pickedWine.jaar && (
-                <span className="text-2xl font-mono font-black text-rose-400 bg-stone-900 px-3 py-1 rounded-xl border border-stone-800 shadow-inner">
+                <span className="text-2xl font-mono font-black text-rose-400 bg-stone-900 px-3 py-1 rounded-xl border border-stone-800 shadow-inner group-hover:border-rose-900 transition">
                   {pickedWine.jaar}
                 </span>
               )}
@@ -207,7 +212,7 @@ export const TonightSommelierModal: React.FC<TonightSommelierModalProps> = ({
             </div>
 
             {/* Sommelier Advice & Serving Box */}
-            <div className="p-3.5 rounded-2xl bg-stone-900/90 border border-stone-800 text-xs space-y-2">
+            <div className="p-3.5 rounded-2xl bg-stone-900/90 border border-stone-800 text-xs space-y-2 group-hover:bg-stone-900 transition">
               <div className="flex items-center justify-between text-stone-300">
                 <span className="flex items-center gap-1.5 font-medium">
                   <MapPin className="w-3.5 h-3.5 text-rose-400" />
@@ -230,38 +235,37 @@ export const TonightSommelierModal: React.FC<TonightSommelierModalProps> = ({
               ) : null}
             </div>
 
+            {/* Click hint banner */}
+            <div className="flex items-center justify-between text-[11px] text-stone-400 group-hover:text-rose-300 transition pt-1 px-1">
+              <span>💡 Tik ergens op deze kaart voor alle details</span>
+              <span className="font-semibold text-rose-400">Bekijk details &rarr;</span>
+            </div>
+
             {/* Quick Actions inside modal */}
-            <div className="flex flex-col sm:flex-row items-center gap-2 pt-2">
+            <div className="flex items-center gap-2 pt-1 border-t border-stone-800/80">
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   onDrinkOne(pickedWine);
                   onClose();
                 }}
-                className="w-full sm:flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-800 hover:bg-rose-700 text-white font-bold text-xs transition shadow-lg shadow-rose-950/60 cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-800 hover:bg-rose-700 text-white font-bold text-xs transition shadow-lg shadow-rose-950/60 cursor-pointer"
               >
                 <span>🍷 Deze fles openen</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => pickBottle()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  pickBottle();
+                }}
                 disabled={isSpinning}
-                className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-750 text-stone-300 font-semibold text-xs transition cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-750 text-stone-300 font-semibold text-xs transition cursor-pointer"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isSpinning ? 'animate-spin' : ''}`} />
                 <span>Andere suggestie</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  onSelectWine(pickedWine);
-                  onClose();
-                }}
-                className="w-full sm:w-auto px-3 py-2.5 text-xs text-stone-400 hover:text-stone-200 transition cursor-pointer"
-              >
-                Wijn bekijken
               </button>
             </div>
           </div>
