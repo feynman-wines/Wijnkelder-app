@@ -223,13 +223,32 @@ export const AddWineModal: React.FC<AddWineModalProps> = ({
       );
     } catch (err: any) {
       console.warn('AI scan failed:', err);
-      const isNetworkOrFetchError = err?.message?.toLowerCase().includes('failed to fetch') || 
-                                    err?.message?.toLowerCase().includes('network') ||
-                                    err?.message?.toLowerCase().includes('load failed');
-      if (isNetworkOrFetchError) {
-        setScanError('AI-scanner vereist de actieve cloud-omgeving. Op statische GitHub Pages kun je de wijn hieronder direct handmatig invullen.');
+      let rawMsg = err?.message || '';
+      
+      // Extract inner JSON message if raw Google error string was caught
+      try {
+        if (rawMsg.includes('{') && rawMsg.includes('}')) {
+          const jsonSub = rawMsg.slice(rawMsg.indexOf('{'), rawMsg.lastIndexOf('}') + 1);
+          const parsed = JSON.parse(jsonSub);
+          if (parsed?.error?.message) {
+            rawMsg = parsed.error.message;
+          }
+        }
+      } catch {
+        // keep rawMsg
+      }
+
+      const is402 = rawMsg.includes('402') || rawMsg.includes('prepayment') || rawMsg.includes('RESOURCE_EXHAUSTED');
+      const isNetworkOrFetchError = rawMsg.toLowerCase().includes('failed to fetch') || 
+                                    rawMsg.toLowerCase().includes('network') ||
+                                    rawMsg.toLowerCase().includes('load failed');
+
+      if (is402) {
+        setScanError('Google AI melding (Tegoed / Prepayment vereist): Je Google Cloud project vraagt om prepayment credits. Je kunt de gegevens hieronder gewoon handmatig invullen, of op aistudio.google.com een gratis API-sleutel kiezen.');
+      } else if (isNetworkOrFetchError) {
+        setScanError('AI-scanner vereist een actieve internetverbinding. Je kunt de gegevens hieronder ook direct handmatig invullen.');
       } else {
-        setScanError(err.message || 'Automatische herkenning mislukt. Vul de gegevens handmatig in.');
+        setScanError(rawMsg || 'Automatische herkenning mislukt. Vul de gegevens hieronder handmatig in.');
       }
     } finally {
       setIsScanning(false);

@@ -26,6 +26,7 @@ export const StockView: React.FC<StockViewProps> = ({
   const [typeFilter, setTypeFilter] = useState('');
   const [klimaatFilter, setKlimaatFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
+  const [highScoreOnly, setHighScoreOnly] = useState(false);
   const [sortBy, setSortBy] = useState('naam');
   const [sortAsc, setSortAsc] = useState(true);
 
@@ -60,6 +61,9 @@ export const StockView: React.FC<StockViewProps> = ({
         if (statusFilter === 'maturing' && status.status !== 'maturing') return false;
       }
 
+      // 5. Vivino score filter (4.0+)
+      if (highScoreOnly && (Number(w.score) || 0) < 4.0) return false;
+
       return true;
     }).sort((a, b) => {
       let result = 0;
@@ -81,7 +85,7 @@ export const StockView: React.FC<StockViewProps> = ({
 
       return sortAsc ? result : -result;
     });
-  }, [activeWines, search, typeFilter, klimaatFilter, statusFilter, sortBy, sortAsc]);
+  }, [activeWines, search, typeFilter, klimaatFilter, statusFilter, highScoreOnly, sortBy, sortAsc]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 py-6 sm:px-6">
@@ -116,6 +120,76 @@ export const StockView: React.FC<StockViewProps> = ({
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-stone-800 border border-stone-700 text-stone-100 text-sm placeholder-stone-500 focus:outline-none focus:border-rose-500"
           />
+        </div>
+
+        {/* Snelfilters / Quick Buttons */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+          <button
+            type="button"
+            onClick={() => { setTypeFilter(''); setStatusFilter(''); setHighScoreOnly(false); }}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+              !typeFilter && !statusFilter && !highScoreOnly
+                ? 'bg-rose-900/80 text-rose-200 border border-rose-700 shadow-sm'
+                : 'bg-stone-800 hover:bg-stone-750 text-stone-300 border border-stone-700'
+            }`}
+          >
+            <span>🌟 Alle</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTypeFilter(typeFilter === 'Rood' ? '' : 'Rood')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+              typeFilter === 'Rood'
+                ? 'bg-rose-900/90 text-rose-200 border border-rose-700 shadow-sm'
+                : 'bg-stone-800 hover:bg-stone-750 text-stone-300 border border-stone-700'
+            }`}
+          >
+            <span>🍷 Rood</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTypeFilter(typeFilter === 'Wit & rosé' ? '' : 'Wit & rosé')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+              typeFilter === 'Wit & rosé'
+                ? 'bg-amber-950/90 text-amber-200 border border-amber-700 shadow-sm'
+                : 'bg-stone-800 hover:bg-stone-750 text-stone-300 border border-stone-700'
+            }`}
+          >
+            <span>🥂 Wit & rosé</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter(statusFilter === 'urgent' ? '' : 'urgent')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+              statusFilter === 'urgent'
+                ? 'bg-red-950/90 text-red-200 border border-red-700 shadow-sm'
+                : 'bg-stone-800 hover:bg-stone-750 text-stone-300 border border-stone-700'
+            }`}
+          >
+            <span>🚨 Drink eerst</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter(statusFilter === 'peak' ? '' : 'peak')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+              statusFilter === 'peak'
+                ? 'bg-emerald-950/90 text-emerald-200 border border-emerald-700 shadow-sm'
+                : 'bg-stone-800 hover:bg-stone-750 text-stone-300 border border-stone-700'
+            }`}
+          >
+            <span>✨ Nu op dronk</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setHighScoreOnly(!highScoreOnly)}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+              highScoreOnly
+                ? 'bg-amber-900/90 text-amber-200 border border-amber-600 shadow-sm'
+                : 'bg-stone-800 hover:bg-stone-750 text-stone-300 border border-stone-700'
+            }`}
+          >
+            <span>⭐ Vivino 4.0+</span>
+          </button>
         </div>
 
         {/* Filter controls */}

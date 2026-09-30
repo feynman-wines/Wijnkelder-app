@@ -142,6 +142,17 @@ export const WineCard: React.FC<WineCardProps> = ({
                 🫗 Karafferen
               </span>
             )}
+
+            {/* Spijsadvies badge */}
+            {wine.eten && (
+              <span
+                className="text-[10px] font-semibold text-emerald-300 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded flex items-center gap-1 cursor-help"
+                title={`Spijssuggesties: ${wine.eten}`}
+              >
+                <span>🍽️</span>
+                <span className="hidden sm:inline">Spijsadvies</span>
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
