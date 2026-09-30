@@ -27,9 +27,9 @@ export default async function handler(req: any, res: any) {
     return res.status(500).json({ error: 'GEMINI_API_KEY is niet ingesteld in de Vercel Environment Variables.' });
   }
 
-  if (!apiKey.startsWith('AIza')) {
+  if (!apiKey.startsWith('AIza') && !apiKey.startsWith('AQ')) {
     return res.status(400).json({
-      error: `De ingevulde GEMINI_API_KEY begint met "${apiKey.substring(0, 8)}..." in plaats van "AIzaSy...". Een geldige Google AI Studio sleutel begint altijd met "AIzaSy". Controleer of je de juiste API Key hebt gekopieerd in Vercel.`
+      error: `De ingevulde GEMINI_API_KEY begint met "${apiKey.substring(0, 8)}...". Een geldige Google AI Studio sleutel begint met "AQ" of "AIza". Controleer je instellingen in Vercel.`
     });
   }
 
