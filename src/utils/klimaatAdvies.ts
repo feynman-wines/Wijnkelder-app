@@ -61,12 +61,30 @@ export function getKlimaatAdviesInfo(advies: KlimaatAdvies | string | undefined)
 
 export function evaluateKlimaatAdvies(wine: Partial<Wine>): { advies: KlimaatAdvies; reden: string } {
   const type = wine.type || 'Rood';
+  const typeLower = String(type).toLowerCase();
   const score = Number(wine.score) || 0;
   const drinkenTot = String(wine.drinkenTot || '');
   const optimaal = String(wine.optimaal || '');
   const druif = String(wine.druif || '').toLowerCase();
   const streek = String(wine.streek || '').toLowerCase();
   const wijnhuis = String(wine.wijnhuis || '').toLowerCase();
+  const naam = String(wine.naam || '').toLowerCase();
+  const opmerkingen = String(wine.opmerkingen || '').toLowerCase();
+
+  const alcNum = typeof wine.alcohol === 'number' 
+    ? wine.alcohol 
+    : parseFloat(String(wine.alcohol || '').replace(/[^\d.]/g, '')) || 0;
+
+  // 1. Sterke drank, amaro, likeuren, digestieven, vermout en gedistilleerd (>18-20% alc)
+  const isSpiritOrLiqueur = alcNum >= 20 || 
+    /amaro|likeur|liqueur|bitter|digestief|digestif|vermouth|vermout|grappa|cognac|armagnac|whisky|whiskey|rum|gin|vodka|limoncello/.test(naam + ' ' + druif + ' ' + streek + ' ' + wijnhuis + ' ' + opmerkingen + ' ' + typeLower);
+
+  if (isSpiritOrLiqueur) {
+    return {
+      advies: '--',
+      reden: `Gedistilleerd of likeur (${alcNum ? alcNum + '% alcohol' : 'hoog alcoholpercentage'}). Bederft niet op kamertemperatuur en rijpt niet op de fles. Bewaar altijd rechtop in de drankenkast of barmeubel; een liggende plek in de wijnklimaatkast is zonde van de bewaarruimte voor wijn en kan de kurk aantasten.`
+    };
+  }
 
   // Long aging indicators
   const hasLongHorizon = /203[0-9]|204[0-9]/.test(drinkenTot) || /203[0-9]|204[0-9]/.test(optimaal);

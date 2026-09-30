@@ -305,38 +305,29 @@ app.post('/api/scan-wine', async (req, res) => {
       }
     }));
 
-    const textPrompt = imageList.length > 1
-      ? `Analyseer de bijgevoegde foto's (voor- én achteretiket) van deze wijn grondig.
-Combineer alle informatie van beide etiketten:
-- Vooretiket: meestal naam, producent/château, oogstjaar, streek en classificatie.
-- Achteretiket: vaak specifieke druivenrassen, alcoholpercentage, smaakomschrijving, vinificatie en serveersuggesties.
-
+    const promptInstructions = `
 Lees en bepaal tevens de sommelier-inzichten:
-- Type: 'Rood', 'Wit & rosé', of 'Overig'
+- Type: 'Rood', 'Wit & rosé', of 'Overig' (kies 'Overig' voor mousserend, likeur, amaro, digestief of gedistilleerd)
 - Geschatte Vivino-score (tussen 3.0 en 5.0) en prijsindicatie in Nederland (€x–y)
-- Optimaal drinkvenster (bijv. "2026–2032") en drinken tot (bijv. "2035")
-- Passend spijsadvies (korte opsomming van gerechten)
+- Optimaal drinkvenster (bijv. "2026–2032", of "NV / Onbeperkt" bij likeur/gedistilleerd) en drinken tot (bijv. "2035" of "Onbeperkt")
+- Passend spijsadvies (korte opsomming van gerechten, of 'Digestief / solo / ijs' bij likeuren/amaro)
 - Klimaatkastadvies: kies strikt één van de volgende 5 codes:
-  '++' = Moet er écht in (lange bewaring >7-15 jaar, kwetsbare topwijn)
+  '++' = Moet er écht in (lange wijn-bewaring >7-15 jaar, kwetsbare topwijn zoals Barolo, Grand Cru, etc.)
   '+' = Aanbevolen (kwaliteitswijn 3-7 jaar)
   '+/-' = Indien ruimte over (stevige wijn voor 1-3 jaar, koele kelder volstaat ook)
-  '-' = Niet nodig (jonge doordrinker, binnen 12 maanden op)
-  '--' = Plekverspilling (slobberwijn of direct drinken)
-- Klimaatkastreden: een overtuigende sommelier-argumentatie waarom deze specifieke wijn wel/niet in de klimaatkast moet.`
-      : `Analyseer dit wijnetiket grondig.
-Lees de tekst op het etiket (naam, wijnhuis/domein, druivenras(sen), oogstjaar/vintage, herkomstbenaming, alcoholpercentage).
-Bepaal tevens sommelier-inzichten:
-- Type: 'Rood', 'Wit & rosé', of 'Overig'
-- Geschatte Vivino-score (tussen 3.0 en 5.0) en prijsindicatie in Nederland (€x–y)
-- Optimaal drinkvenster (bijv. "2026–2032") en drinken tot (bijv. "2035")
-- Passend spijsadvies (korte opsomming van gerechten)
-- Klimaatkastadvies: kies strikt één van de volgende 5 codes:
-  '++' = Moet er écht in (lange bewaring >7-15 jaar, kwetsbare topwijn)
-  '+' = Aanbevolen (kwaliteitswijn 3-7 jaar)
-  '+/-' = Indien ruimte over (stevige wijn voor 1-3 jaar, koele kelder volstaat ook)
-  '-' = Niet nodig (jonge doordrinker, binnen 12 maanden op)
-  '--' = Plekverspilling (slobberwijn of direct drinken)
-- Klimaatkastreden: een overtuigende sommelier-argumentatie waarom deze specifieke wijn wel/niet in de klimaatkast moet.`;
+  '-' = Niet nodig (jonge frisse wijn voor binnen 12 maanden)
+  '--' = Plekverspilling (BELANGRIJK: likeuren, amaro, digestieven, vermout en sterke drank/gedistilleerd met alcohol >= 20% krijgen ALTIJD '--'!)
+- Klimaatkastreden: een overtuigende sommelier-argumentatie. Let op: als het een likeur, amaro (bijv. Jefferson Amaro Importante), bitter of gedistilleerd betreft, leg dan nadrukkelijk uit dat deze drank door het hoge alcoholpercentage niet bederft op kamertemperatuur, niet rijpt op fles, rechtop in de drankenkast hoort en NIET in de wijnklimaatkast hoort te liggen.`;
+
+    const textPrompt = imageList.length > 1
+      ? `Analyseer de bijgevoegde foto's (voor- én achteretiket) van deze fles grondig.
+Combineer alle informatie van beide etiketten:
+- Vooretiket: naam, producent/merk, oogstjaar (of NV), herkomst/streek en type.
+- Achteretiket: ingrediënten, botanicals of druiven, alcoholpercentage, smaakomschrijving en serveersuggesties.
+${promptInstructions}`
+      : `Analyseer dit etiket grondig.
+Lees de tekst op het etiket (naam, producent/merk/wijnhuis, druivenrassen of botanicals, oogstjaar/vintage of NV, herkomstbenaming, alcoholpercentage).
+${promptInstructions}`;
 
     const schemaProperties = {
       naam: { type: Type.STRING, description: 'Naam van de wijn' },
