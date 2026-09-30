@@ -385,3 +385,168 @@ export function findWinePairings(
 
   return results.slice(0, 6);
 }
+
+export interface WineGastronomyAnalysis {
+  smaakprofiel: string;
+  gerechten: Array<{ gang: string; gerecht: string; waarom: string }>;
+  serveeradvies: string;
+  afrader: string;
+  isOfflineFallback?: boolean;
+}
+
+export function generateLocalWineGastronomy(wine: Wine): WineGastronomyAnalysis {
+  const grapeLower = (wine.druif || '').toLowerCase();
+  const nameLower = (wine.naam || '').toLowerCase();
+  const isRed = wine.type === 'Rood';
+  const yearNum = Number(wine.jaar) || 0;
+  const isBurgundy = nameLower.includes('maranges') || nameLower.includes('bourgogne') || nameLower.includes('beaune') || grapeLower.includes('pinot noir');
+
+  if (isBurgundy || grapeLower.includes('pinot noir') || grapeLower.includes('frühburgunder')) {
+    return {
+      smaakprofiel: `Verfijnd en elegant met levendige zuren, aroma's van rode kersen, frambozen en aardse ondertonen (kreupelhout en lichte specerijen). Zijdezachte tannines met een zuivere Bourgogne-typische finesse.`,
+      gerechten: [
+        {
+          gang: 'Voorgerecht / Tussengerecht',
+          gerecht: 'Kalfstartaar met truffelmayonaise of gebakken bospaddenstoelen op toast',
+          waarom: 'De aardse tonen van de paddenstoelen en truffel resoneren naadloos met het delicate kreupelhoutkarakter van de Pinot Noir.'
+        },
+        {
+          gang: 'Hoofdgerecht',
+          gerecht: 'Geroosterde eendenborst (magret de canard) met kersensaus of parelhoen met cantharellen',
+          waarom: 'De sappige zuren en het rode fruit van de wijn snijden verfrissend door het malse vet van de eend zonder het vlees te overstemmen.'
+        },
+        {
+          gang: 'Kaas / Borrel',
+          gerecht: 'Franse kazen zoals milde Époisses, Comté (18 mnd) of romige Chaource',
+          waarom: 'De verfijnde structuur respecteert de romigheid van de kazen zonder bittere tannine-reacties.'
+        }
+      ],
+      serveeradvies: `${wine.temperatuur || '14–16 °C'} in een ruim Bourgogneglas (bolle kelk). ${yearNum >= 2020 ? '30–45 minuten van tevoren openen.' : 'Direct schenken.'}`,
+      afrader: 'Vermijd zware peperige steaks, gerookte vette zalm of pittige chili; de subtiele nuances van de Pinot Noir worden dan volledig weggeblazen.'
+    };
+  }
+
+  if (grapeLower.includes('cabernet') || grapeLower.includes('merlot') || nameLower.includes('bordeaux') || nameLower.includes('medoc') || nameLower.includes('saint-emilion')) {
+    return {
+      smaakprofiel: `Krachtig en gestructureerd met aroma's van zwarte bessen (cassis), cederhout, rijpe bramen en stevige, rijpe tannines die baat hebben bij eiwitrijk vlees.`,
+      gerechten: [
+        {
+          gang: 'Voorgerecht',
+          gerecht: 'Carpaccio van gerijpt rundvlees met parmezaanvlokken en rucola',
+          waarom: 'De hartige umami van de parmezaan en het malse rund sluiten aan op de donkere fruittonen van de wijn.'
+        },
+        {
+          gang: 'Hoofdgerecht',
+          gerecht: 'Gegrilde ribeye, bavette van de grill met rozemarijn of lamsrack',
+          waarom: 'De tannines in de wijn binden direct aan de vetten en eiwitten van het vlees, waardoor de wijn fluweelzacht smaakt.'
+        },
+        {
+          gang: 'Kaas',
+          gerecht: 'Gerijpte harde kazen zoals Oude Hollandse kaas, Pecorino of Cheddar',
+          waarom: 'Vaste kazen met zoutkristallen neutraliseren tannines en benadrukken het rijpe bessenfruit.'
+        }
+      ],
+      serveeradvies: `${wine.temperatuur || '16–18 °C'}. Karafferen aanbevolen (1 à 2 uur vooraf) in een hoog Bordeauxglas.`,
+      afrader: 'Visgerechten of delicate schaal- en schelpdieren (zorgt voor een nare metaalachtige smaak door de tannines).'
+    };
+  }
+
+  if (grapeLower.includes('syrah') || grapeLower.includes('shiraz') || nameLower.includes('rhone') || grapeLower.includes('grenache')) {
+    return {
+      smaakprofiel: `Royaal en warmbloedig met zwarte bessen, garrigue-kruiden, gemalen zwarte peper en een volle, sappige afdronk.`,
+      gerechten: [
+        {
+          gang: 'Voorgerecht',
+          gerecht: 'Charcuterieplank met gedroogde wildzwijnsworst en olijventapenade',
+          waarom: 'Het kruidige vet van de charcuterie harmonieert met de peperigheid van de Syrah.'
+        },
+        {
+          gang: 'Hoofdgerecht',
+          gerecht: 'Langzaam gegaarde runderstoof, lamsbout met rozemarijn en knoflook of wild zwijn',
+          waarom: 'De diepe umami en kruiden in de stoofsaus worden versterkt door de kruidige body van de wijn.'
+        },
+        {
+          gang: 'Kaas',
+          gerecht: 'Morbier of blauwschimmelkaas (zoals Fourme d\'Ambert)',
+          waarom: 'De intense smaak van de kaas kan de krachtige body van de wijn uitstekend aan.'
+        }
+      ],
+      serveeradvies: `${wine.temperatuur || '16–18 °C'} in een ruim glas. 1 uur van tevoren ontkurken.`,
+      afrader: 'Lichte salades of zure citrusgerechten.'
+    };
+  }
+
+  if (grapeLower.includes('chardonnay')) {
+    return {
+      smaakprofiel: `Rijk en gelaagd met rijpe gele appel, citrus, lichte vanille- en botertoetsen en een elegante, minerale frisheid.`,
+      gerechten: [
+        {
+          gang: 'Voorgerecht',
+          gerecht: 'Coquilles St. Jacques gebakken in roomboter of krabkoekjes',
+          waarom: 'Het zoetige, delicate vlees van de coquilles versmelt subliem met de ronde botertoetsen van de Chardonnay.'
+        },
+        {
+          gang: 'Hoofdgerecht',
+          gerecht: 'Op de huid gebakken zalm met wittewijnsaus of parelhoen in dragonsaus',
+          waarom: 'Rijke vis en romige gevogeltesauzen vragen om de body en zachte zuren van deze wijn.'
+        },
+        {
+          gang: 'Kaas',
+          gerecht: 'Romige kazen zoals Brie de Meaux, Camembert of milde boerenkaas',
+          waarom: 'De zachte zuren snijden door de romige vetten en reinigen het gehemelte.'
+        }
+      ],
+      serveeradvies: `${wine.temperatuur || '10–12 °C'} (niet ijskoud!) in een breed witwijnglas.`,
+      afrader: 'Zeer pittig Aziatisch eten of rauwe zure vinaigrettes.'
+    };
+  }
+
+  if (isRed) {
+    return {
+      smaakprofiel: `Mooie balans tussen rood en donker fruit, evenwichtige zuren en harmonieuze tannines met een gastronomische afdronk.`,
+      gerechten: [
+        {
+          gang: 'Voorgerecht',
+          gerecht: 'Carpaccio of ambachtelijke vleeswaren met krokant boerenbrood',
+          waarom: 'Lichte vleessmaken wekken de eetlust op en bereiden de mond voor op de wijn.'
+        },
+        {
+          gang: 'Hoofdgerecht',
+          gerecht: 'Geroosterd rood vlees, malse kogelbiefstuk of kruidige pasta met ragù',
+          waarom: 'De structuur en tannines van de rode wijn sluiten aan op de hartigheid en sappigheid van het vlees.'
+        },
+        {
+          gang: 'Kaas',
+          gerecht: 'Plankje met gerijpte kazen en notenbrood',
+          waarom: 'Kaasvetten verzachten het mondgevoel van de wijn.'
+        }
+      ],
+      serveeradvies: `${wine.temperatuur || '16–18 °C'}. Schenk in ruime rode wijnglazen.`,
+      afrader: 'Schaaldieren of zeer zoete desserts.'
+    };
+  }
+
+  return {
+    smaakprofiel: `Fris, mineraal en fruitig met een opwekkend zurenspel en een verkwikkende afdronk.`,
+    gerechten: [
+      {
+        gang: 'Voorgerecht',
+        gerecht: 'Verse oesters, sashimi of salade met geitenkaas',
+        waarom: 'De frisse zuren complimenteren de zilte, minerale tonen van schelpdieren.'
+      },
+      {
+        gang: 'Hoofdgerecht',
+        gerecht: 'Gebakken zeebaars, kabeljauwrug met citroen-botersaus of risotto met asperges',
+        waarom: 'De frisheid van de wijn tilt de delicate smaak van de vis naar een hoger niveau.'
+      },
+      {
+        gang: 'Kaas',
+        gerecht: 'Verse geitenkaas (zoals Crottin de Chavignol) of jonge schapenkaas',
+        waarom: 'Klassieke harmonie tussen geitenkaas en frisse witte wijn.'
+      }
+    ],
+    serveeradvies: `${wine.temperatuur || '8–10 °C'} gekoeld serveren.`,
+    afrader: 'Zwaar rood vlees of vette stoofschotels.'
+  };
+}
+

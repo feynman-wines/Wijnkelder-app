@@ -5,6 +5,7 @@ import { getWineDrinkStatus } from '../utils/drinkStatus';
 import { getKlimaatAdviesInfo } from '../utils/klimaatAdvies';
 import { KlimaatBadge } from './KlimaatBadge';
 import { callBackendApi } from '../utils/apiConfig';
+import { generateLocalWineGastronomy, WineGastronomyAnalysis } from '../utils/pairingEngine';
 
 interface WineDetailModalProps {
   wine: Wine | null;
@@ -43,12 +44,7 @@ export const WineDetailModal: React.FC<WineDetailModalProps> = ({
 
   // AI Sommelier state for this bottle
   const [aiSommelierLoading, setAiSommelierLoading] = useState(false);
-  const [aiSommelierResult, setAiSommelierResult] = useState<{
-    smaakprofiel: string;
-    gerechten: Array<{ gang: string; gerecht: string; waarom: string }>;
-    serveeradvies: string;
-    afrader: string;
-  } | null>(null);
+  const [aiSommelierResult, setAiSommelierResult] = useState<WineGastronomyAnalysis | null>(null);
   const [aiSommelierError, setAiSommelierError] = useState<string | null>(null);
   const [isSavedToWine, setIsSavedToWine] = useState(false);
 
@@ -66,14 +62,21 @@ export const WineDetailModal: React.FC<WineDetailModalProps> = ({
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Kon AI sommelier niet raadplegen.');
+        throw new Error(err.error || 'API error');
       }
 
       const data = await res.json();
       setAiSommelierResult(data);
     } catch (err: any) {
-      console.error('AI Sommelier error:', err);
-      setAiSommelierError(err.message || 'Fout bij raadplegen AI sommelier. Probeer het over enkele ogenblikken opnieuw.');
+      console.warn('Cloud AI Sommelier unavailable, using smart local sommelier engine:', err?.message);
+      // Seamlessly fall back to rich gastronomic sommelier engine
+      const localAnalysis = generateLocalWineGastronomy(wine);
+      localAnalysis.isOfflineFallback = true;
+      setAiSommelierResult(localAnalysis);
+      // Give a friendly explanation only if it was an auth error
+      if (err?.message && (err.message.includes('401') || err.message.includes('authentication') || err.message.includes('UNAUTHENTICATED'))) {
+        setAiSommelierError('Tip: Je GEMINI_API_KEY in Vercel lijkt niet actief of onvolledig gekopieerd. Lokale sommelier-analyse wordt nu getoond.');
+      }
     } finally {
       setAiSommelierLoading(false);
     }
@@ -714,19 +717,12 @@ export const WineDetailModal: React.FC<WineDetailModalProps> = ({
                   </div>
                 )}
 
-                {/* AI Sommelier Error State */}
+                {/* AI Sommelier Info/Notice State */}
                 {aiSommelierError && (
-                  <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-800 text-xs text-rose-300 flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-800/40 text-xs text-amber-200 flex items-start gap-2">
+                    <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                     <div className="space-y-1">
                       <span>{aiSommelierError}</span>
-                      <button
-                        type="button"
-                        onClick={handleFetchAiSommelier}
-                        className="text-[11px] underline font-semibold block text-rose-200 hover:text-white"
-                      >
-                        Opnieuw proberen
-                      </button>
                     </div>
                   </div>
                 )}
