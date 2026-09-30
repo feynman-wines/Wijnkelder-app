@@ -21,14 +21,25 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const rawKey = process.env.GEMINI_API_KEY || '';
+  const rawKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.API_KEY || '';
   const apiKey = rawKey.trim().replace(/^["']|["']$/g, '');
   if (!apiKey) {
     return res.status(500).json({ error: 'GEMINI_API_KEY is niet ingesteld in de Vercel Environment Variables.' });
   }
 
+  if (!apiKey.startsWith('AIza')) {
+    return res.status(400).json({
+      error: `De ingevulde GEMINI_API_KEY begint met "${apiKey.substring(0, 8)}..." in plaats van "AIzaSy...". Een geldige Google AI Studio sleutel begint altijd met "AIzaSy". Controleer of je de juiste API Key hebt gekopieerd in Vercel.`
+    });
+  }
+
   const ai = new GoogleGenAI({
     apiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
   });
 
   try {
@@ -151,6 +162,10 @@ Als er geen perfecte match in de kelder ligt, kies dan de best passende opties u
     return res.status(200).json(result);
   } catch (error: any) {
     console.error('Sommelier error:', error);
-    return res.status(500).json({ error: error.message || 'Fout bij raadplegen sommelier.' });
+    let msg = error.message || 'Fout bij raadplegen sommelier.';
+    if (msg.includes('invalid authentication credentials') || msg.includes('Expected OAuth 2')) {
+      msg = 'De ingevulde API-sleutel werd door Google geweigerd ("invalid authentication credentials"). Mogelijke oorzaken: 1) De sleutel is per ongeluk verwijderd of ingetrokken in Google AI Studio, 2) De sleutel is onvolledig gekopieerd, of 3) Na het bijwerken van de GEMINI_API_KEY in Vercel moet je op "Redeploy" klikken om de nieuwe sleutel te activeren.';
+    }
+    return res.status(500).json({ error: msg });
   }
 }
