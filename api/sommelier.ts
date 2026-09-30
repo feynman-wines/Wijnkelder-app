@@ -89,7 +89,7 @@ Als er geen perfecte match in de kelder ligt, kies dan de best passende opties u
     let response;
     try {
       response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash-lite',
         contents: prompt,
         config: {
           systemInstruction: 'Je bent een deskundige Nederlandse sommelier. Analyseer de smaakcomponenten van het gerecht en geef een eerlijk, hoogstaand en gastronomisch onderbouwd advies gebaseerd op de opgegeven kelderlijst.',
@@ -122,9 +122,9 @@ Als er geen perfecte match in de kelder ligt, kies dan de best passende opties u
         }
       });
     } catch (primaryErr: any) {
-      console.warn('Gemini 2.5 flash sommelier error, falling back to gemini-2.5-flash-lite:', primaryErr?.message);
+      console.warn('Gemini 3.5 flash-lite sommelier error, retrying:', primaryErr?.message);
       response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-lite',
+        model: 'gemini-3.5-flash-lite',
         contents: prompt,
         config: {
           systemInstruction: 'Je bent een deskundige Nederlandse sommelier. Analyseer de smaakcomponenten van het gerecht en geef een eerlijk, hoogstaand en gastronomisch onderbouwd advies gebaseerd op de opgegeven kelderlijst.',

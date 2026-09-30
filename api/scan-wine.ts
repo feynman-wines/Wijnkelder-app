@@ -132,7 +132,7 @@ Bepaal tevens sommelier-inzichten:
     let response;
     try {
       response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash-lite',
         contents: { parts: [...imageParts, { text: textPrompt }] },
         config: {
           systemInstruction: 'Je bent een meester-vinoloog en scanner van wijnetiketten. Herken accuraat de producent, jaargang, herkomst, druif en geef deskundig bewaar- en klimaatkastadvies in het Nederlands.',
@@ -148,9 +148,9 @@ Bepaal tevens sommelier-inzichten:
         }
       });
     } catch (primaryErr: any) {
-      console.warn('Gemini 2.5 flash error, falling back to gemini-2.5-flash-lite:', primaryErr?.message);
+      console.warn('Gemini 3.5 flash-lite primary error, retrying:', primaryErr?.message);
       response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-lite',
+        model: 'gemini-3.5-flash-lite',
         contents: { parts: [...imageParts, { text: textPrompt }] },
         config: {
           systemInstruction: 'Je bent een meester-vinoloog en scanner van wijnetiketten. Herken accuraat de producent, jaargang, herkomst, druif en geef deskundig bewaar- en klimaatkastadvies in het Nederlands.',

@@ -102,7 +102,7 @@ Als er geen perfecte match in de kelder ligt, kies dan de best passende opties u
     try {
       response = await callGeminiWithRetry(() =>
         ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash-lite',
           contents: prompt,
           config: {
             systemInstruction: 'Je bent een deskundige Nederlandse sommelier. Analyseer de smaakcomponenten van het gerecht en geef een eerlijk, hoogstaand en gastronomisch onderbouwd advies gebaseerd op de opgegeven kelderlijst.',
@@ -136,9 +136,9 @@ Als er geen perfecte match in de kelder ligt, kies dan de best passende opties u
         })
       );
     } catch (primaryErr: any) {
-      console.warn('Gemini 2.5 flash error, trying gemini-2.5-flash-lite:', primaryErr?.message);
+      console.warn('Gemini 3.5 flash-lite error, retrying:', primaryErr?.message);
       response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-lite',
+        model: 'gemini-3.5-flash-lite',
         contents: prompt,
         config: {
           systemInstruction: 'Je bent een deskundige Nederlandse sommelier. Analyseer de smaakcomponenten van het gerecht en geef een eerlijk, hoogstaand en gastronomisch onderbouwd advies gebaseerd op de opgegeven kelderlijst.',
@@ -238,7 +238,7 @@ Geef een diepgaande maar compacte analyse:
     try {
       response = await callGeminiWithRetry(() =>
         ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash-lite',
           contents: prompt,
           config: {
             systemInstruction: 'Je bent een meester-sommelier. Geef hoogwaardig, inspirerend en gastronomisch accuraat Nederlands wijn-spijsadvies.',
@@ -248,9 +248,9 @@ Geef een diepgaande maar compacte analyse:
         })
       );
     } catch (primaryErr: any) {
-      console.warn('Gemini 2.5 flash error, falling back to gemini-2.5-flash-lite:', primaryErr?.message);
+      console.warn('Gemini 3.5 flash-lite enrich error, retrying:', primaryErr?.message);
       response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-lite',
+        model: 'gemini-3.5-flash-lite',
         contents: prompt,
         config: {
           systemInstruction: 'Je bent een meester-sommelier. Geef hoogwaardig, inspirerend en gastronomisch accuraat Nederlands wijn-spijsadvies.',
@@ -362,7 +362,7 @@ Bepaal tevens sommelier-inzichten:
     try {
       response = await callGeminiWithRetry(() =>
         ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash-lite',
           contents: { parts: [...imageParts, { text: textPrompt }] },
           config: {
             systemInstruction: 'Je bent een meester-vinoloog en scanner van wijnetiketten. Herken accuraat de producent, jaargang, herkomst, druif en geef deskundig bewaar- en klimaatkastadvies in het Nederlands.',
@@ -379,10 +379,10 @@ Bepaal tevens sommelier-inzichten:
         })
       );
     } catch (primaryErr: any) {
-      console.warn('Gemini 2.5 flash scan error, trying gemini-3.1-flash-lite:', primaryErr?.message);
+      console.warn('Gemini 3.5 flash-lite scan error, retrying:', primaryErr?.message);
       try {
         response = await ai.models.generateContent({
-          model: 'gemini-3.1-flash-lite',
+          model: 'gemini-3.5-flash-lite',
           contents: { parts: [...imageParts, { text: textPrompt }] },
           config: {
             systemInstruction: 'Je bent een meester-vinoloog en scanner van wijnetiketten. Herken accuraat de producent, jaargang, herkomst, druif en geef deskundig bewaar- en klimaatkastadvies in het Nederlands.',
