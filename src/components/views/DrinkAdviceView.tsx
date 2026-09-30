@@ -55,12 +55,20 @@ export const DrinkAdviceView: React.FC<DrinkAdviceViewProps> = ({
   const handleLocalPairing = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!dishQuery.trim()) return;
-
     setAiResponse(null);
     setAiError('');
     const results = findWinePairings(wines, dishQuery, typeFilter);
     setLocalResults(results);
     setHasSearched(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dishQuery.trim()) return;
+    // Immediate fast pairing
+    handleLocalPairing();
+    // Also run deep AI sommelier
+    handleAISommelier();
   };
 
   const handleAISommelier = async () => {
@@ -125,7 +133,7 @@ export const DrinkAdviceView: React.FC<DrinkAdviceViewProps> = ({
 
       {/* Input Hero Card */}
       <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-rose-950/40 via-stone-900 to-stone-900 border border-rose-900/50 space-y-4 shadow-xl">
-        <form onSubmit={handleLocalPairing} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <label className="block text-xs font-semibold text-rose-300 uppercase tracking-wider">
             Wat ga je vanavond eten?
           </label>

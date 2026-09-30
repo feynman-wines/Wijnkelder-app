@@ -96,12 +96,17 @@ const DISH_RULES: Record<string, DishProfile> = {
   },
   roodvlees: {
     name: 'Gegrild rood vlees & biefstuk',
-    dishCategories: ['rood vlees', 'biefstuk', 'entrecote', 'ribeye', 'ossenhaas', 'bbq', 'gegrild vlees', 'burger', 'kotelet'],
+    dishCategories: [
+      'rood vlees', 'biefstuk', 'bavette', 'bavet', 'flank steak', 'steak',
+      'entrecote', 'ribeye', 'ossenhaas', 'tournedos', 'chateaubriand',
+      'longhaas', 'sukade', 'diamanthaas', 'rund', 'rundvlees',
+      'bbq', 'gegrild vlees', 'burger', 'kotelet'
+    ],
     preferredWineTypes: ['Rood'],
     discouragedWineTypes: ['Wit & rosé'],
-    grapePreferences: ['Cabernet Sauvignon', 'Malbec', 'Merlot', 'Syrah', 'Tempranillo'],
-    keywords: ['rood vlees', 'biefstuk', 'gegrild vlees', 'bbq'],
-    flavorProfile: 'gekaramelliseerde korst, eiwitten en vetten'
+    grapePreferences: ['Cabernet Sauvignon', 'Malbec', 'Merlot', 'Syrah', 'Tempranillo', 'Sangiovese', 'Nebbiolo'],
+    keywords: ['rood vlees', 'biefstuk', 'bavette', 'gegrild vlees', 'bbq', 'rundvlees'],
+    flavorProfile: 'gekaramelliseerde korst, sappig vlees, eiwitten en vetten'
   },
   gevogelte: {
     name: 'Gevogelte & wit vlees',
@@ -162,6 +167,12 @@ function extractStems(query: string): string[] {
     if (w.includes('stoof')) stems.push('stoof', 'stoofvlees', 'stoofpot');
     if (w.includes('vis')) stems.push('vis', 'witvis');
     if (w.includes('vlees')) stems.push('rood vlees', 'vlees');
+    if (w.includes('bavet') || w.includes('steak') || w.includes('ribeye') || w.includes('entrecot') || w.includes('rund') || w.includes('biefstuk')) {
+      stems.push('rood vlees', 'biefstuk', 'bavette');
+    }
+    if (w.includes('rozemarijn') || w.includes('tijm') || w.includes('kruid')) {
+      stems.push('kruidig', 'mediterraan');
+    }
   }
   return Array.from(new Set(stems));
 }
@@ -190,6 +201,13 @@ function buildCulinaryReason(
         return `De verfijnde zuren en zachte aardse tonen van de ${grape} omarmen de sappige lamskotelet zonder de delicate parelcouscous te overstemmen.`;
       }
       return `Een krachtige rode wijn met structuur die het hartige karakter en het smaakvolle vet van de lamskotelet harmonieus in evenwicht brengt.`;
+    }
+  }
+
+  // Red meat / Bavette / Steak reasoning
+  if (queryLower.includes('bavet') || queryLower.includes('biefstuk') || queryLower.includes('steak') || queryLower.includes('ribeye') || queryLower.includes('rund') || queryLower.includes('rood vlees')) {
+    if (isRed) {
+      return `De sappige vlezige textuur van de bavette/rundvlees en de geroosterde aroma's van het bakken vragen om een rode wijn met body en structuur. De tannines en het rijpe fruit van de ${grape} (${wine.naam}) versmelten prachtig met de eiwitten en de rozemarijn.`;
     }
   }
 
